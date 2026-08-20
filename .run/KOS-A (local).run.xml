@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="KOS-A (local)" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="github.com/raylsnetwork/rayls-sovereign-relayer" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="run --env .A.env --port 8080" />
+    <kind value="FILE" />
+    <package value="github.com/raylsnetwork/rayls-sovereign-relayer" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/key-operation-service-app/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

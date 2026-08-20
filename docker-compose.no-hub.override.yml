@@ -1,0 +1,28 @@
+# Override applied on top of docker-compose.dev-local.yml for `--no-hub` mode (local):
+#   docker compose -f docker-compose.dev-local.yml -f docker-compose.no-hub.override.yml ...
+#
+# --no-hub runs CTS + public relayers against the Privacy Node + Public Chain only,
+# without the Private Hub (PNH/Besu) or the gnark prover (proofs-api). Both are
+# dropped from the up-list by start_dev.sh, but the only thing that would still drag
+# them in is `contracts`' depends_on — this override drops them there. The local axyl
+# privacy nodes (pn-a/pn-b) are still deployed to, so they stay.
+#
+# proofs-api is safe to drop: its only runtime consumer is the private-relayer (which
+# also requires the hub and isn't started here), and the `contracts` deploy does not
+# call it — the gnark verifier .sol files are synced from disk at build time, not from
+# the running container.
+#
+# `!override` REPLACES the mapping (compose MERGES depends_on otherwise, so it cannot
+# remove keys).
+#
+# NOTE: the `contracts` deploy image (../rayls-sovereign-contracts) must support a
+# hub-less deploy — i.e. deploy only the Privacy Node + Public Chain contracts without
+# requiring a hub RPC. If it still targets the hub, the deploy will fail even though
+# this override removes the container-level dependency.
+services:
+  contracts:
+    depends_on: !override
+      pn-a:
+        condition: service_healthy
+      pn-b:
+        condition: service_healthy

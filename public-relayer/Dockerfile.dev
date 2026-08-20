@@ -1,0 +1,29 @@
+# Build context must be the repo root:
+#   docker build -f public-relayer/Dockerfile.dev .
+FROM golang:1.26.4-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl bash && rm -rf /var/lib/apt/lists/*
+
+RUN go install github.com/air-verse/air@v1.61.7 && \
+    go install github.com/go-delve/delve/cmd/dlv@latest
+
+WORKDIR /app
+
+# BUILD_TAGS is the optional comma-separated list of Go build tags applied to
+# both the initial image build and to air rebuilds inside the container.
+# Defaults to empty so the dev image does not include the fault-injection
+# machinery unless chaos testing is explicitly requested — pass
+# --build-arg BUILD_TAGS=faultinjection (and matching compose env BUILD_TAGS)
+# to opt in.
+ARG BUILD_TAGS=""
+ENV BUILD_TAGS=${BUILD_TAGS}
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN mkdir -p ./tmp && \
+    go build ${BUILD_TAGS:+-tags ${BUILD_TAGS}} -gcflags "all=-N -l" -o ./tmp/app/pubrelayer-app /app/public-relayer/cmd/main.go && \
+    chmod +x docker/development/start_pubrelayer.sh
+
+CMD ["air", "-c", "public-relayer/air.toml"]

@@ -1,0 +1,464 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Relayer 1",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "relayer-app/main.go",
+            "args": [
+                "run",
+                "--env",
+                "relayer-app/a.env"
+            ],
+            "cwd": "${workspaceFolder}",
+            // "envFile": "${workspaceFolder}/relayer-app/.env1"
+        },
+        {
+            "name": "Relayer 2",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "relayer-app/main.go",
+            "args": [
+                "run",
+                "--env",
+                "relayer-app/b.env"
+            ],
+            "cwd": "${workspaceFolder}",
+            // "envFile": "${workspaceFolder}/relayer-app/.env1"
+        },
+        {
+            "name": "CTS-A (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4000,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-B (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4001,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-C (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4002,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-D (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4003,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-E (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4004,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-F (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4005,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-A (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4010,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-B (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4011,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-C (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4012,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-D (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4013,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-E (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4014,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "Relayer-F (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4015,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-A (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4035,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-B (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4017,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-C (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4018,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-D (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4019,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-E (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4020,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "PubRelayer-F (docker)",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "port": 4021,
+            "host": "127.0.0.1"
+        },
+        {
+            "name": "CTS-A (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".A.env",
+                "--port",
+                "8080"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "CTS-B (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".B.env",
+                "--port",
+                "8081"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "CTS-C (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".C.env",
+                "--port",
+                "8082"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "CTS-D (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".D.env",
+                "--port",
+                "8083"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "CTS-E (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".E.env",
+                "--port",
+                "8084"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "CTS-F (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cts/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".F.env",
+                "--port",
+                "8085"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Relayer-A (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".A.env"
+            ],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Relayer-B (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".B.env"
+            ],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Relayer-C (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".C.env"
+            ],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Relayer-D (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".D.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Relayer-E (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".E.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Relayer-F (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/private-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".F.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-A (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".A.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-B (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".B.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-C (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".C.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-D (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".D.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-E (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".E.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "PubRelayer-F (local)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/public-relayer/cmd/main.go",
+            "args": [
+                "run",
+                "--env",
+                ".F.env"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run First two Relayers",
+            "configurations": [
+                "Relayer-A (local)",
+                "Relayer-B (local)"
+            ]
+        },
+        {
+            "name": "Run Six Relayers",
+            "configurations": [
+                "Relayer-A (local)",
+                "Relayer-B (local)",
+                "Relayer-C (local)",
+                "Relayer-D (local)",
+                "Relayer-E (local)",
+                "Relayer-F (local)"
+            ]
+        },
+        {
+            "name": "Run First two PubRelayers",
+            "configurations": [
+                "PubRelayer-A (local)",
+                "PubRelayer-B (local)"
+            ]
+        },
+        {
+            "name": "Run Six PubRelayers",
+            "configurations": [
+                "PubRelayer-A (local)",
+                "PubRelayer-B (local)",
+                "PubRelayer-C (local)",
+                "PubRelayer-D (local)",
+                "PubRelayer-E (local)",
+                "PubRelayer-F (local)"
+            ]
+        }
+    ]
+}

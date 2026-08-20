@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="PubRelayer-C (local)" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="github.com/raylsnetwork/rayls-sovereign-relayer" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="run --env .C.env" />
+    <kind value="FILE" />
+    <package value="github.com/raylsnetwork/rayls-sovereign-relayer" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/pubrelayer/cmd/main.go" />
+    <method v="2" />
+  </configuration>
+</component>
