@@ -1,0 +1,131 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'version-*'
+      - 'version/*'
+
+env:
+  GO_VERSION: '1.26.4'
+
+jobs:
+  # ===========================================================================
+  # UNIT TESTS - Run Go unit tests with coverage
+  # ===========================================================================
+  unit-tests:
+    name: Run Unit Tests
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install coverage and reporting tools
+        run: |
+          go install github.com/boumenot/gocover-cobertura@v1.4.0
+          go install github.com/jstemmer/go-junit-report/v2@v2.1.0
+
+      - name: Run unit tests with coverage
+        id: tests
+        run: |
+          PACKAGES=$(go list ./... | grep -v '/contracts')
+          go test -v $PACKAGES -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt || true
+          cat test-output.txt | go-junit-report > test-results.xml || true
+          if grep -q "^FAIL" test-output.txt; then
+            echo "tests_passed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tests_passed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Convert coverage to Cobertura XML
+        if: always()
+        run: gocover-cobertura < coverage.out > coverage.xml
+
+      - name: Generate coverage report
+        id: coverage
+        if: always()
+        run: |
+          if [ -f coverage.out ]; then
+            COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}')
+            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            go tool cover -func=coverage.out > coverage-func.txt
+          else
+            echo "percentage=N/A" >> $GITHUB_OUTPUT
+          fi
+
+          echo "## Code Coverage Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          go tool cover -func=coverage.out | tail -1 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Build PR comment
+        if: always()
+        run: |
+          STATUS="${{ steps.tests.outputs.tests_passed == 'true' && '✅ **All tests passed**' || '❌ **Some tests failed**' }}"
+          COVERAGE="${{ steps.coverage.outputs.percentage }}"
+          {
+            echo "## 🧪 Unit Tests"
+            echo ""
+            echo "$STATUS"
+            echo ""
+            echo "### 📊 Code Coverage: \`$COVERAGE\`"
+            echo ""
+            if [ -f coverage-func.txt ]; then
+              echo "<details>"
+              echo "<summary>View coverage by function</summary>"
+              echo ""
+              echo '```'
+              cat coverage-func.txt
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+          } > pr-comment.md
+
+      - name: Post test results to PR
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@773744901bac0e8cbb5a0dc842800d45e9b2b405 # v2.9.4
+        with:
+          header: unit-tests
+          path: pr-comment.md
+
+      - name: Upload test results
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+        if: always()
+        with:
+          name: Go Unit Tests
+          path: test-results.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage.html
+            coverage.xml
+            coverage-func.txt
+          retention-days: 7
+
+      - name: Fail if tests failed
+        if: steps.tests.outputs.tests_passed == 'false'
+        run: exit 1          

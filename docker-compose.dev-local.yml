@@ -1,0 +1,2766 @@
+# This docker-compose file is meant to be used for local development.
+# DO NOT USE THIS FOR PRODUCTION!
+
+# --- YAML anchor base configs for participant services (a-f) ---
+
+# Axyl-based privacy node anchors
+x-axyl-setup: &axyl-setup
+  image: local-axyl:latest
+  pull_policy: never
+  user: "root"
+  command: ["bash", "/setup_validator.sh"]
+
+x-axyl-validator: &axyl-validator
+  image: local-axyl:latest
+  pull_policy: never
+  user: "1101:1101"
+  environment:
+    - RUST_LOG=info,execution=debug,primary::cert_fetcher=debug,primary::cert_manager=debug,rayls-consensus-state-sync=debug
+    - RL_BLS_PASSPHRASE=local
+    - RAYLS_NETWORK=local
+    - PRIMARY_LISTENER_MULTIADDR=/ip4/0.0.0.0/udp/49590/quic-v1
+    - WORKER_LISTENER_MULTIADDR=/ip4/0.0.0.0/udp/49595/quic-v1
+
+x-cts-base: &cts-base
+  image: rayls-cts:dev
+  depends_on:
+    contracts:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+    nats:
+      condition: service_healthy
+  #network_mode: host
+  # /ready returns 503 until MarkReady fires (post AccessManager role
+  # grant + key-agreement creation), which can take ~3m40s on a clean boot.
+  healthcheck:
+    test:
+      - 'CMD-SHELL'
+      - 'curl -sf http://127.0.0.1:$${CTS_HTTP_PORT}/ready'
+    interval: 5s
+    timeout: 30s
+    retries: 100
+    start_period: 30s
+
+x-relayer-base: &relayer-base
+  image: rayls-relayer:dev
+  #network_mode: host
+  # Each relayer instance binds the healthcheck server to its own port via
+  # PRIVATE_RELAYER_HEALTHCHECK_PORT (set in .A.env..F.env: 9000, 9001, ...).
+  # The $$ escapes compose-level interpolation so the shell inside the container
+  # expands it at exec time.
+  healthcheck:
+    test:
+      - 'CMD-SHELL'
+      - 'curl --fail http://127.0.0.1:$${PRIVATE_RELAYER_HEALTHCHECK_PORT:-9000}/healthcheck'
+    interval: 10s
+    timeout: 30s
+    retries: 20
+
+x-pubrelayer-base: &pubrelayer-base
+  image: rayls-pubrelayer:dev
+  #network_mode: host
+  healthcheck:
+    test:
+      - 'CMD-SHELL'
+      - 'curl --fail http://127.0.0.1:9000/healthcheck'
+    interval: 10s
+    timeout: 30s
+    retries: 20
+
+# Ops API: shared base for both per-participant API containers. Build is via the
+# upstream Dockerfile.dev (golang:1.24-alpine + air for hot-reload). Code is
+# bind-mounted from the sibling repo. The relayer-api's private-relayer client
+# certs are mounted read-only into /nats-certs so the ops-api can do mTLS to the
+# shared NATS server (which is configured with `verify: true`).
+#
+# Note: the Go module cache (`/go/pkg/mod`) is intentionally NOT in this anchor.
+# A single shared named volume hits Docker's concurrent "populate from image"
+# race on first start (the four containers all try to copy /go/pkg/mod from the
+# image into one volume at once, producing "mkdir ... file exists" errors).
+# Each service mounts its own named volume to avoid the race entirely.
+x-ops-api-base: &ops-api-base
+  build:
+    context: ../rayls-privacy-ops-api
+    dockerfile: Dockerfile.dev
+  security_opt:
+    - seccomp:unconfined
+  cap_add:
+    - SYS_PTRACE
+  volumes:
+    - ../rayls-privacy-ops-api:/app
+    - ./private-relayer/certs:/nats-certs:ro
+  depends_on:
+    # custody-<i> dependency is added per-instance (each ops-api binds to its
+    # own custody container; see ops-api-a/-b for the explicit depends_on).
+    contracts:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+    nats:
+      condition: service_healthy
+  healthcheck:
+    test:
+      - 'CMD-SHELL'
+      - 'wget -qO- http://127.0.0.1:8080/health || exit 1'
+    interval: 10s
+    timeout: 5s
+    retries: 20
+    start_period: 30s
+
+# Ops Worker: same code base, different entrypoint (the `worker` subcommand).
+# No HTTP port (just delve for debugging); no custody dep (only the API talks to HSM).
+# Same NATS mTLS cert mount as the API base. See the api anchor's comment about
+# per-service Go module volumes (avoids Docker's concurrent populate race).
+x-ops-worker-base: &ops-worker-base
+  build:
+    context: ../rayls-privacy-ops-api
+    dockerfile: Dockerfile.worker.dev
+  security_opt:
+    - seccomp:unconfined
+  cap_add:
+    - SYS_PTRACE
+  volumes:
+    - ../rayls-privacy-ops-api:/app
+    - ./private-relayer/certs:/nats-certs:ro
+  depends_on:
+    postgres:
+      condition: service_healthy
+    nats:
+      condition: service_healthy
+
+# Playground (Next.js 16 dApp): each container binds to ONE chain via the
+# NEXT_PUBLIC_CHAIN_* env vars parsed in src/lib/chains.ts. We run one per
+# chain (Hub + 1 per Privacy Node) on a shared source bind-mount, each with
+# isolated node_modules and .next volumes so parallel `npm run dev` instances
+# don't collide on the build cache.
+x-playground-base: &playground-base
+  image: node:20-alpine
+  working_dir: /app
+  command: ["sh", "-c", "npm install --no-audit --no-fund && npm run dev"]
+  user: "0:0"
+  healthcheck:
+    test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+    interval: 15s
+    timeout: 5s
+    retries: 30
+    start_period: 120s
+
+services:
+  # PostgreSQL for relayer and CTS services
+  postgres:
+    # Custom image bakes in postgres-init.sh via COPY (not bind mount), avoiding
+    # macOS Docker Desktop VirtioFS quirks that strip/break exec bits on mounted
+    # init scripts and cause "bad interpreter: Permission denied" at runtime.
+    build:
+      context: ./docker/development
+      dockerfile: postgres.Dockerfile
+    image: rayls-postgres-dev:local
+    command: postgres -c max_connections=500
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+      DB_NAMES: ${DB_NAMES:-}
+      # pg_ctl uses this for its `-w` shutdown timeout. The official postgres
+      # docker-entrypoint runs `pg_ctl -m fast -w stop` after the init scripts
+      # finish; with the default 60s, the shutdown checkpoint can exceed the
+      # budget under concurrent I/O (axyl validators + image builds), the
+      # entrypoint exits with non-zero, the container dies, and every service
+      # with `depends_on: postgres {condition: service_healthy}` is left in
+      # "Created" state. 300s comfortably absorbs the observed slowness.
+      # See: test/e2e/security/resilience/Postgres_SlowShutdown_DependentServicesStartup.ts
+      PGCTLTIMEOUT: 300
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # MongoDB for privacy nodes (pl-a to pl-f) - keeping for privacy node internal use
+  mongodb:
+    image: mongo:6-jammy
+    command: --replSet rs0 --bind_ip 0.0.0.0
+    # On rapid `--clean` relaunch, the previous container's host-port
+    # binding for 127.0.0.1:27017 can still be held by the kernel
+    # (docker-proxy / TIME_WAIT) when the new container tries to bind.
+    # mongodb itself does not retry the bind; it just exits 48
+    # ("Address already in use"), which cascades every depends_on:
+    # service_healthy dependent into 'Created' state. Bounded
+    # auto-restart heals the transient bind race in seconds without
+    # masking a genuine misconfiguration: on-failure:5 caps at 5
+    # attempts, so a real port conflict (another process owning 27017)
+    # still surfaces as a final-failure exit instead of spinning forever.
+    restart: on-failure:5
+    #network_mode: host
+    # user: "${UID}:${GID}"
+    extra_hosts:
+      - mongodb:127.0.0.1
+    volumes:
+      - ./docker/development/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "127.0.0.1:27017:27017"
+    # MongoDB official recommendations for production (https://www.mongodb.com/docs/manual/reference/ulimit/)
+    # Prevents "too many open files" errors with high connection loads (24+ services connecting)
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+      nproc:
+        soft: 64000
+        hard: 64000
+    healthcheck:
+      test: "mongosh admin --host 127.0.0.1 --username admin --password admin --eval 'db.runCommand({ ping: 1 }).ok && db.isMaster().ismaster'"
+      # test: [ "CMD-SHELL", "mongosh admin --host 127.0.0.1 --username admin --password admin --eval 'db.runCommand({ ping: 1 }).ok && db.isMaster().ismaster'" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 20s
+      retries: 5
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 127.0.0.1:9988:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin@mongodb:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH: false
+    depends_on:
+      mongodb:
+        condition: service_healthy
+  # --- Image builders (build once, shared by all participants) ---
+  axyl-base:
+    image: local-axyl:latest
+    pull_policy: never
+    build:
+      # Defaults to the sibling ../axyl checkout. Override with AXYL_BUILD_CONTEXT to build
+      # from a different checkout/worktree (e.g. a branch that carries `--dev` before it lands
+      # on the axyl checkout you normally use).
+      context: ${AXYL_BUILD_CONTEXT:-../axyl}
+      dockerfile: etc/docker-network/Dockerfile
+      args:
+        # reth's build.rs unconditionally slices VERGEN_GIT_SHA (&sha[0..7], &sha[..8]),
+        # so an empty value panics ("byte index 7 is out of bounds of ``"). start_dev.sh
+        # exports AXYL_GIT_SHA from ../axyl HEAD; the all-zeros default keeps a manual
+        # `docker compose build axyl-base` (without start_dev.sh) from panicking too.
+        VERGEN_GIT_SHA: ${AXYL_GIT_SHA:-0000000000000000000000000000000000000000}
+        # Cargo features to compile into the axyl binary, passed to the axyl Dockerfile's
+        # BUILD_FEATURES ARG. We build with `dev-single-node-setup` so `rayls node --dev`
+        # (single-validator local chains) is available — the local PNs + public chain run
+        # in --dev mode. A dev build is single-node ONLY (it refuses multi-validator
+        # committees), which matches this compose exactly; conversely a production build
+        # (no feature) cannot run this compose at all — it has no `--dev` flag and rejects
+        # 1-validator committees — so don't override this with an empty value.
+        BUILD_FEATURES: ${AXYL_BUILD_FEATURES:-dev-single-node-setup}
+    command: ["echo", "Axyl image built"]
+
+  cts:
+    image: rayls-cts:dev
+    build:
+      context: .
+      dockerfile: cts/Dockerfile.dev
+    profiles: ["build"]
+
+  relayer:
+    image: rayls-relayer:dev
+    build:
+      context: .
+      dockerfile: private-relayer/Dockerfile.dev
+    profiles: ["build"]
+
+  pubrelayer:
+    image: rayls-pubrelayer:dev
+    build:
+      context: .
+      dockerfile: public-relayer/Dockerfile.dev
+    profiles: ["build"]
+
+  # === AXYL: PN-A (chain ID 12345 / 0x3039, RPC port 8545) ===
+  pn-a-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.10.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.10.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-a-v1-data:/home/nonroot/data
+  pn-a-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x3039
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-a-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-a-genesis-data:/home/nonroot/data/genesis
+      - pn-a-v1-data:/home/nonroot/data/validator-1
+  pn-a:
+    <<: *axyl-validator
+    depends_on:
+      pn-a-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8545 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8545:8545
+      - 127.0.0.1:9545:9101 # consensus metrics
+      - 127.0.0.1:9645:9200 # execution metrics
+    volumes:
+      - pn-a-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-a-net:
+        ipv4_address: 10.10.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8545'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  # === AXYL: PL-B (chain ID 12346 / 0x303A, RPC port 8546) ===
+  pn-b-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.20.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.20.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-b-v1-data:/home/nonroot/data
+  pn-b-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x303A
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-b-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-b-genesis-data:/home/nonroot/data/genesis
+      - pn-b-v1-data:/home/nonroot/data/validator-1
+  pn-b:
+    <<: *axyl-validator
+    depends_on:
+      pn-b-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8546 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8546:8546
+      - 127.0.0.1:9546:9101 # consensus metrics
+      - 127.0.0.1:9646:9200 # execution metrics
+    volumes:
+      - pn-b-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-b-net:
+        ipv4_address: 10.20.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8546'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  # === AXYL: PL-C (chain ID 12347 / 0x303B, RPC port 8547) ===
+  pn-c-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.30.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.30.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-c-v1-data:/home/nonroot/data
+  pn-c-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x303B
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-c-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-c-genesis-data:/home/nonroot/data/genesis
+      - pn-c-v1-data:/home/nonroot/data/validator-1
+  pn-c:
+    <<: *axyl-validator
+    depends_on:
+      pn-c-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8547 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8547:8547
+    volumes:
+      - pn-c-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-c-net:
+        ipv4_address: 10.30.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8547'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  # === AXYL: PL-D (chain ID 12348 / 0x303C, RPC port 8548) ===
+  pn-d-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.40.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.40.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-d-v1-data:/home/nonroot/data
+  pn-d-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x303C
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-d-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-d-genesis-data:/home/nonroot/data/genesis
+      - pn-d-v1-data:/home/nonroot/data/validator-1
+  pn-d:
+    <<: *axyl-validator
+    depends_on:
+      pn-d-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8548 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8548:8548
+    volumes:
+      - pn-d-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-d-net:
+        ipv4_address: 10.40.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8548'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  # === AXYL: PL-E (chain ID 12349 / 0x303D, RPC port 8549) ===
+  pn-e-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.50.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.50.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-e-v1-data:/home/nonroot/data
+  pn-e-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x303D
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-e-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-e-genesis-data:/home/nonroot/data/genesis
+      - pn-e-v1-data:/home/nonroot/data/validator-1
+  pn-e:
+    <<: *axyl-validator
+    depends_on:
+      pn-e-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8549 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8549:8549
+    volumes:
+      - pn-e-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-e-net:
+        ipv4_address: 10.50.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8549'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  # === AXYL: PL-F (chain ID 12350 / 0x303E, RPC port 8550) ===
+  pn-f-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.60.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.60.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pn-f-v1-data:/home/nonroot/data
+  pn-f-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - GASLESS=true
+      - CHAIN_ID=0x303E
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pn-f-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pn-f-genesis-data:/home/nonroot/data/genesis
+      - pn-f-v1-data:/home/nonroot/data/validator-1
+  pn-f:
+    <<: *axyl-validator
+    depends_on:
+      pn-f-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8550 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 0 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 0
+    ports:
+      - 127.0.0.1:8550:8550
+    volumes:
+      - pn-f-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pn-f-net:
+        ipv4_address: 10.60.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8550'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  private-hub:
+    build:
+      context: .
+      dockerfile: ./docker/development/local/Dockerfile.besu
+    # Podman can't exec the healthcheck as the image's named user "besu"
+    # ("unable to find user besu: no matching entries in passwd file"), so the
+    # container is reported unhealthy even though Besu is fine. start_dev.sh sets
+    # this to the numeric equivalent (1000:1000) so the healthcheck exec skips the
+    # passwd lookup. Unset (Docker) -> the image's default user "besu".
+    user: ${PRIVATE_HUB_USER:-besu}
+    #network_mode: host
+    environment:
+      - BESU_NODE_PRIVATE_KEY_FILE=/app/besu_node_key
+      - BESU_RPC_HTTP_ENABLED=true
+      - BESU_RPC_HTTP_PORT=3445
+      - BESU_RPC_HTTP_HOST=0.0.0.0
+      - BESU_RPC_HTTP_API=ETH,NET,WEB3,CLIQUE,ADMIN,DEBUG,TXPOOL,TRACE
+      - BESU_HOST_ALLOWLIST=*
+      - BESU_RPC_HTTP_CORS_ORIGINS=*
+      - BESU_P2P_ENABLED=false
+      - BESU_DISCOVERY_ENABLED=false
+      - BESU_MIN_GAS_PRICE=0
+      - BESU_DATA_STORAGE_FORMAT=FOREST
+      - BESU_REVERT_REASON_ENABLED=true
+      - BESU_TX_POOL=sequenced
+      - BESU_DATA_PATH=/opt/besu/database
+      - BESU_NETWORK_ID=1337
+      - BESU_GENESIS_FILE=/app/var/genesis.json
+      - BESU_TX_POOL_RETENTION_HOURS=999
+      - BESU_TX_POOL_LIMIT_BY_ACCOUNT_PERCENTAGE=1.0
+      - BESU_TX_POOL_MAX_SIZE=20000
+      - BESU_RPC_HTTP_MAX_REQUEST_CONTENT_LENGTH=20971520
+      - BESU_RPC_HTTP_MAX_BATCH_SIZE=-1
+    volumes:
+      - ./docker/development/local/genesis_cc.json:/app/var/genesis.json:ro
+      - ./docker/development/local/besu_node_key:/app/besu_node_key:ro
+    ports:
+      - 127.0.0.1:3445:3445
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"latest\", true],\"id\":1}' 127.0.0.1:3445"
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # === AXYL: PUBLIC CHAIN (chain ID 7331 / 0x1CA3, RPC port 8845) ===
+  # Non-gasless: pc-genesis deliberately does NOT set GASLESS=true, so the
+  # shared axyl_genesis.sh falls back to the default 48 Gwei base fee /
+  # min base fee. The deployer (0xf39Fd6…2266) is prefunded via
+  # pn_accounts.yaml so it can pay gas on this non-gasless chain.
+  # DEV_FUNDED_ACCOUNT must NOT be the contract deployer: axyl genesis seeds
+  # system contracts at addresses derived from the dev-funded/consensus-owner
+  # account, which would collide with the deployer's nonce-0 CREATE address
+  # (EIP-684 → all gas consumed, deploy reverts). Use the same separate
+  # account the PN clusters use (0xE4F2…), matching the working PN config.
+  pc-setup1:
+    <<: *axyl-setup
+    depends_on:
+      axyl-base: { condition: service_completed_successfully }
+    environment:
+      - RL_EXTERNAL_PRIMARY_ADDR=/ip4/10.70.0.21/udp/49590/quic-v1
+      - RL_EXTERNAL_WORKER_ADDRS=/ip4/10.70.0.21/udp/49595/quic-v1
+      - EXECUTION_ADDRESS=0x1111111111111111111111111111111111111111
+      - RL_BLS_PASSPHRASE=local
+    volumes:
+      - ../axyl/etc/docker-network/setup_validator.sh:/setup_validator.sh:ro
+      - pc-v1-data:/home/nonroot/data
+  pc-genesis:
+    image: local-axyl:latest
+    pull_policy: never
+    user: "root"
+    command: ["bash", "/genesis.sh"]
+    environment:
+      - RL_BLS_PASSPHRASE=local
+      - CHAIN_ID=0x1CA3
+      - GAS_LIMIT=281474976710655
+      - DEV_FUNDED_ACCOUNT=0xE4F2eB9B68cd50c604B5C16258167F77B6b23F31
+      # Lower this (e.g. 60) to trigger axyl epoch transitions frequently.
+      # Default 86400 (24h) means no epoch transitions during normal
+      # dev/test runs. Baked into chain genesis; changing it requires
+      # `start_dev.sh --clean`.
+      - RAYLS_AXYL_EPOCH_DURATION_SECS=${RAYLS_AXYL_EPOCH_DURATION_SECS:-86400}
+    depends_on:
+      pc-setup1: { condition: service_completed_successfully }
+    volumes:
+      - ./docker/development/local/axyl_genesis.sh:/genesis.sh:ro
+      - ./docker/development/local/pn_accounts.yaml:/accounts.yaml:ro
+      - pc-genesis-data:/home/nonroot/data/genesis
+      - pc-v1-data:/home/nonroot/data/validator-1
+  public-chain:
+    <<: *axyl-validator
+    depends_on:
+      pc-genesis: { condition: service_completed_successfully }
+    command: >
+      /usr/local/bin/rayls node --dev --storage.v2 --datadir /home/nonroot/data --http.addr 0.0.0.0 --http.port 8845 --http --metrics 0.0.0.0:9101 --reth-metrics 0.0.0.0:9200 --txpool.minimal-protocol-fee 48000000000 --txpool.pending-max-count 1000000 --txpool.pending-max-size 1242880000 --txpool.basefee-max-count 1000000 --txpool.basefee-max-size 20971120000 --txpool.queued-max-count 1000000 --txpool.queued-max-size 20971120000 --txpool.max-pending-txns 1000000 --txpool.max-new-txns 1000000 --txpool.max-tx-input-bytes 999999999999 --txpool.max-account-slots 999999999 --gpo.default-suggested-fee 48000000000
+    ports:
+      - 127.0.0.1:8845:8845
+    volumes:
+      - pc-v1-data:/home/nonroot/data
+    networks:
+      default:
+      pc-net:
+        ipv4_address: 10.70.0.21
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8845'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+  proofs-api:
+    build:
+      context: ../rayls-privacy-gnark-api
+      dockerfile: Dockerfile
+    # Same Podman named-user healthcheck issue as private-hub: the image's "appuser"
+    # (uid 999) can't be resolved by podman's healthcheck exec. start_dev.sh sets this
+    # to 999:999 on Podman so the exec skips the passwd lookup. Unset (Docker) -> "appuser".
+    user: ${PROOFS_API_USER:-appuser}
+    ports:
+      - 127.0.0.1:3003:3003
+    healthcheck:
+      test:
+        - 'CMD-SHELL'
+        - 'curl --fail http://127.0.0.1:3003/healthcheck'
+      interval: 10s
+      timeout: 30s
+      retries: 20
+      start_period: 30s
+  contracts:
+    build:
+      context: ../rayls-privacy-contracts
+      dockerfile: Dockerfile.dev
+      args:
+        - CUSTOM_UID=${CUSTOM_UID:-1000}
+        - CUSTOM_GID=${CUSTOM_GID:-1000}
+    #entrypoint: bash /app/deploy_contracts.sh
+    #network_mode: host
+    #stdin_open: true # docker run -i
+    #tty: true # docker run -t
+    ports:
+      - "127.0.0.1:7000:7000"
+    environment:
+      - RELAYER_PATH=/parfin/rayls-privacy-relayer-api
+      - PARTICIPANT_LIST=${PARTICIPANT_LIST:-A,B}
+      - CUSTOM_UID=${CUSTOM_UID:-1000}
+      - CUSTOM_GID=${CUSTOM_GID:-1000}
+      - DEV_MODE=${DEV_MODE:-local}
+      - GOVERNANCE_ENABLED=${GOVERNANCE_ENABLED:-true}
+      - PUBLIC_CHAIN_ENABLED=${PUBLIC_CHAIN_ENABLED:-true}
+      # HUB_ENABLED=false (start_dev.sh --no-hub) tells the deploy to skip the
+      # Private Hub (PNH) contracts and NOT write PNH_DEPLOYMENT_PROXY_REGISTRY /
+      # PNH_RPC_URL into the participant .env files, so CTS's PrivateHubEnabled()
+      # reads false and CTS + public relayers boot without a hub.
+      - HUB_ENABLED=${HUB_ENABLED:-true}
+      - OPS_API_ENABLED=${OPS_API_ENABLED:-true}
+    #user: "${CUSTOM_UID:-1000}:${CUSTOM_GID:-1000}"
+    # CUSTOM_UID/GID come from start_dev.sh: the host uid/gid on Docker, or 0 on rootless
+    # Podman so this container runs as root — it must write the image-baked root-owned
+    # cache_forge dir, and rootless maps container root -> host user, so the bindings/.env
+    # it chowns to CUSTOM_UID land owned by us on the host (not a 100999 subuid).
+    volumes:
+      - ../rayls-privacy-contracts/.env:/parfin/rayls-privacy-contracts/.env
+      - ../rayls-privacy-pnh-governance-api/config:/parfin/rayls-privacy-pnh-governance-api/config
+      - ../rayls-privacy-pnh-governance-api/.env:/parfin/rayls-privacy-pnh-governance-api/.env
+      - ../rayls-privacy-pnh-governance-api/contracts:/parfin/rayls-privacy-pnh-governance-api/contracts
+      - ../rayls-privacy-ops-api/contracts:/parfin/rayls-privacy-ops-api/contracts
+      - .:/parfin/rayls-privacy-relayer-api
+    depends_on:
+      proofs-api:
+        condition: service_healthy
+      pn-a:
+        condition: service_healthy
+      pn-b:
+        condition: service_healthy
+      # pn-c:
+      #   condition: service_healthy
+      # pn-d:
+      #   condition: service_healthy
+      # pn-e:
+      #   condition: service_healthy
+      # pn-f:
+      #   condition: service_healthy
+      private-hub:
+        condition: service_healthy
+      # public-chain:
+      #   condition: service_healthy
+    healthcheck:
+      # This service takes ~10min to compile and deploy all contracts.
+      # Most of the time is spent deploying contracts, therefore reducing block times will speed up this process.
+      test:
+        - 'CMD-SHELL'
+        - 'curl --fail http://127.0.0.1:7000'
+      interval: 10s
+      timeout: 30s
+      retries: 100
+      start_period: 60s
+  # governance-postgres-adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 127.0.0.1:9105:8080
+  governance-api:
+    build:
+      context: ../rayls-privacy-pnh-governance-api
+      dockerfile: Dockerfile.api-dev
+    ports:
+      - 127.0.0.1:9100:8080
+      - 127.0.0.1:4030:4030
+    env_file:
+      - .A.env
+    environment:
+      - CONFIG_FILE=/app/.env
+      - GO_DEBUG_PORT=4030
+      - OTEL_SERVICE_NAME=governance-api
+    volumes:
+      - ../rayls-privacy-pnh-governance-api/.env:/app/.env:ro
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/air.api.toml
+          target: /app/air.api.toml
+        - action: sync
+          path: ../rayls-privacy-pnh-governance-api/
+          target: /app
+  governance-listener:
+    build:
+      context: ../rayls-privacy-pnh-governance-api
+      dockerfile: Dockerfile.listener-dev
+    ports:
+      - 127.0.0.1:9101:8081
+      - 127.0.0.1:4031:4031
+    env_file:
+      - .A.env
+    environment:
+      - CONFIG_FILE=/app/.env
+      - GO_DEBUG_PORT=4031
+      - OTEL_SERVICE_NAME=governance-listener
+      - NATS_URL=nats://nats:4222
+      - NATS_TLS_CA_FILE=/app/certs/ca.crt
+      - NATS_TLS_CERT_FILE=/app/certs/governance.crt
+      - NATS_TLS_KEY_FILE=/app/certs/governance.key
+    volumes:
+      - ../rayls-privacy-pnh-governance-api/.env:/app/.env:ro
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/air.listener.toml
+          target: /app/air.listener.toml
+        - action: sync
+          path: ../rayls-privacy-pnh-governance-api/
+          target: /app
+  governance-flagger:
+    build:
+      context: ../rayls-privacy-pnh-governance-api
+      dockerfile: Dockerfile.flagger-dev
+    ports:
+      - 127.0.0.1:9102:8082
+      - 127.0.0.1:4032:4032
+    env_file:
+      - .A.env
+    environment:
+      - CONFIG_FILE=/app/.env
+      - GO_DEBUG_PORT=4032
+      - OTEL_SERVICE_NAME=governance-flagger
+    volumes:
+      - ../rayls-privacy-pnh-governance-api/.env:/app/.env:ro
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ../rayls-privacy-pnh-governance-api/air.flagger.toml
+          target: /app/air.flagger.toml
+        - action: sync
+          path: ../rayls-privacy-pnh-governance-api/
+          target: /app
+  auditor-explorer:
+    build:
+      context: ../rayls-privacy-pnh-auditor-ui
+      dockerfile: Dockerfile
+    ports:
+      - 127.0.0.1:4080:80
+    environment:
+      - RAYLS_API=/api
+    depends_on:
+      governance-api:
+        condition: service_started
+  cts-a:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8080:8080
+      - 127.0.0.1:8090:8090
+      - 127.0.0.1:4000:4000
+      # Fault-injection control surface — matches KOS_FAULT_INJECTION_PORT in
+      # .A.env. Active only when the binary is built with -tags faultinjection
+      # (start_dev.sh default); compiled-out no-op otherwise. Required by
+      # FaultInjector.forService('kos', 'A', '127.0.0.1') in the e2e suite.
+      - 127.0.0.1:6800:6800
+    env_file:
+      - path: .A.env
+        required: false
+    environment:
+      - ENV_FILE=.A.env
+      - GO_DEBUG_PORT=4000
+      - OTEL_SERVICE_NAME=cts-a
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.A.env
+          target: /app/.A.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  cts-b:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8081:8081
+      - 127.0.0.1:8091:8091
+      - 127.0.0.1:4001:4001
+      # Fault-injection control surface — exposed only when the binary is
+      # built with `-tags faultinjection` (default in start_dev.sh). The
+      # FaultInjector.forService('kos', 'B', '127.0.0.1') call in the e2e
+      # suite reaches the CTS FI server through this mapping.
+      - 127.0.0.1:6801:6801
+    env_file:
+      - path: .B.env
+        required: false
+    environment:
+      - ENV_FILE=.B.env
+      - GO_DEBUG_PORT=4001
+      - OTEL_SERVICE_NAME=cts-b
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.B.env
+          target: /app/.B.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  cts-c:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8082:8082
+      - 127.0.0.1:8092:8092
+      - 127.0.0.1:4002:4002
+      # Fault-injection control surface — see cts-a for context.
+      - 127.0.0.1:6802:6802
+    env_file:
+      - path: .C.env
+        required: false
+    environment:
+      - ENV_FILE=.C.env
+      - GO_DEBUG_PORT=4002
+      - OTEL_SERVICE_NAME=cts-c
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.C.env
+          target: /app/.C.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  cts-d:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8083:8083
+      - 127.0.0.1:8093:8093
+      - 127.0.0.1:4003:4003
+      # Fault-injection control surface — see cts-a for context.
+      - 127.0.0.1:6803:6803
+    env_file:
+      - path: .D.env
+        required: false
+    environment:
+      - ENV_FILE=.D.env
+      - GO_DEBUG_PORT=4003
+      - OTEL_SERVICE_NAME=cts-d
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.D.env
+          target: /app/.D.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  cts-e:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8084:8084
+      - 127.0.0.1:8094:8094
+      - 127.0.0.1:4004:4004
+      # Fault-injection control surface — see cts-a for context.
+      - 127.0.0.1:6804:6804
+    env_file:
+      - path: .E.env
+        required: false
+    environment:
+      - ENV_FILE=.E.env
+      - GO_DEBUG_PORT=4004
+      - OTEL_SERVICE_NAME=cts-e
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.E.env
+          target: /app/.E.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  cts-f:
+    <<: *cts-base
+    ports:
+      - 127.0.0.1:8085:8085
+      - 127.0.0.1:8095:8095
+      - 127.0.0.1:4005:4005
+      # Fault-injection control surface — see cts-a for context.
+      - 127.0.0.1:6805:6805
+    env_file:
+      - path: .F.env
+        required: false
+    environment:
+      - ENV_FILE=.F.env
+      - GO_DEBUG_PORT=4005
+      - OTEL_SERVICE_NAME=cts-f
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.F.env
+          target: /app/.F.env
+        - action: sync+restart
+          path: ./cts/air.toml
+          target: /app/cts/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  relayer-a:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-a:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:4010:4010
+      - 127.0.0.1:6660:6660
+    env_file:
+      - path: .A.env
+        required: false
+    environment:
+      - ENV_FILE=.A.env
+      - GO_DEBUG_PORT=4010
+      - OTEL_SERVICE_NAME=relayer-a
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.A.env
+          target: /app/.A.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  nats:
+    image: nats:2-alpine
+    command: ["-js", "-c", "/etc/nats/nats.conf", "-p", "4222", "-m", "8222"]
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    volumes:
+      - ./docker/development/local/nats.conf:/etc/nats/nats.conf:ro
+      - ./docker/development/nats-certs:/etc/nats/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/ || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  relayer-b:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-b:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9001:9001
+      - 127.0.0.1:4011:4011
+      - 127.0.0.1:6661:6661
+    env_file:
+      - path: .B.env
+        required: false
+    environment:
+      - ENV_FILE=.B.env
+      - GO_DEBUG_PORT=4011
+      - OTEL_SERVICE_NAME=relayer-b
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.B.env
+          target: /app/.B.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  relayer-c:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-c:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9002:9002
+      - 127.0.0.1:4012:4012
+      - 127.0.0.1:6662:6662
+    env_file:
+      - path: .C.env
+        required: false
+    environment:
+      - ENV_FILE=.C.env
+      - GO_DEBUG_PORT=4012
+      - OTEL_SERVICE_NAME=relayer-c
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.C.env
+          target: /app/.C.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  relayer-d:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-d:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9003:9003
+      - 127.0.0.1:4013:4013
+      - 127.0.0.1:6663:6663
+    env_file:
+      - path: .D.env
+        required: false
+    environment:
+      - ENV_FILE=.D.env
+      - GO_DEBUG_PORT=4013
+      - OTEL_SERVICE_NAME=relayer-d
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.D.env
+          target: /app/.D.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+
+  relayer-e:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-e:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9004:9004
+      - 127.0.0.1:4014:4014
+      - 127.0.0.1:6664:6664
+    env_file:
+      - path: .E.env
+        required: false
+    environment:
+      - ENV_FILE=.E.env
+      - GO_DEBUG_PORT=4014
+      - OTEL_SERVICE_NAME=relayer-e
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.E.env
+          target: /app/.E.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  relayer-f:
+    <<: *relayer-base
+    depends_on:
+      nats:
+        condition: service_healthy
+      cts-f:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9005:9005
+      - 127.0.0.1:4015:4015
+      - 127.0.0.1:6665:6665
+    env_file:
+      - path: .F.env
+        required: false
+    environment:
+      - ENV_FILE=.F.env
+      - GO_DEBUG_PORT=4015
+      - OTEL_SERVICE_NAME=relayer-f
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.F.env
+          target: /app/.F.env
+        - action: sync+restart
+          path: ./private-relayer/air.toml
+          target: /app/private-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-a:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      cts-a:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9006:9000
+      - 127.0.0.1:4035:4035
+      # Fault-injection control surface — matches PUBLIC_RELAYER_FAULT_INJECTION_PORT
+      # in .A.env. Active only when the binary is built with -tags faultinjection
+      # (start_dev.sh default); compiled-out no-op otherwise. Required by
+      # FaultInjector.forService('pubrelayer', 'A', '127.0.0.1') in the e2e suite.
+      - 127.0.0.1:6700:6700
+    env_file:
+      - path: .A.env
+        required: false
+    environment:
+      - ENV_FILE=.A.env
+      - GO_DEBUG_PORT=4035
+      - OTEL_SERVICE_NAME=pubrelayer-a
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.A.env
+          target: /app/.A.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-b:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      cts-b:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9007:9000
+      - 127.0.0.1:4036:4036
+      # Fault-injection control surface — see pubrelayer-a for context.
+      - 127.0.0.1:6701:6701
+    env_file:
+      - path: .B.env
+        required: false
+    environment:
+      - ENV_FILE=.B.env
+      - GO_DEBUG_PORT=4036
+      - OTEL_SERVICE_NAME=pubrelayer-b
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.B.env
+          target: /app/.B.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-c:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      cts-c:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9008:9000
+      - 127.0.0.1:4037:4037
+      # Fault-injection control surface — see pubrelayer-a for context.
+      - 127.0.0.1:6702:6702
+    env_file:
+      - path: .C.env
+        required: false
+    environment:
+      - ENV_FILE=.C.env
+      - GO_DEBUG_PORT=4037
+      - OTEL_SERVICE_NAME=pubrelayer-c
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.C.env
+          target: /app/.C.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-d:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      cts-d:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9009:9000
+      - 127.0.0.1:4038:4038
+      # Fault-injection control surface — see pubrelayer-a for context.
+      - 127.0.0.1:6703:6703
+    env_file:
+      - path: .D.env
+        required: false
+    environment:
+      - ENV_FILE=.D.env
+      - GO_DEBUG_PORT=4038
+      - OTEL_SERVICE_NAME=pubrelayer-d
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.D.env
+          target: /app/.D.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-e:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      cts-e:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9010:9000
+      - 127.0.0.1:4039:4039
+      # Fault-injection control surface — see pubrelayer-a for context.
+      - 127.0.0.1:6704:6704
+    env_file:
+      - path: .E.env
+        required: false
+    environment:
+      - ENV_FILE=.E.env
+      - GO_DEBUG_PORT=4039
+      - OTEL_SERVICE_NAME=pubrelayer-e
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.E.env
+          target: /app/.E.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  pubrelayer-f:
+    <<: *pubrelayer-base
+    depends_on:
+      contracts:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      cts-f:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:9011:9000
+      - 127.0.0.1:4050:4050
+      # Fault-injection control surface — see pubrelayer-a for context.
+      - 127.0.0.1:6705:6705
+    env_file:
+      - path: .F.env
+        required: false
+    environment:
+      - ENV_FILE=.F.env
+      - GO_DEBUG_PORT=4050
+      - OTEL_SERVICE_NAME=pubrelayer-f
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./go.mod
+          target: /app/go.mod
+        - action: sync+restart
+          path: ./go.sum
+          target: /app/go.sum
+        - action: sync+restart
+          path: ./.F.env
+          target: /app/.F.env
+        - action: sync+restart
+          path: ./public-relayer/air.toml
+          target: /app/public-relayer/air.toml
+        - action: sync
+          path: ./
+          target: /app
+  # OpenTelemetry (OTeL)
+  otel:
+    image: docker.io/grafana/otel-lgtm:latest
+    ports:
+      - "127.0.0.1:3300:3000" # graphana ui http://otel:3300 http://localhost:3300 http://127.0.0.1:3300
+      - "127.0.0.1:3100:3100" # loki (logging)
+      - "127.0.0.1:3090:9090" # prometheus ui (metrics) http://otel:3090 http://localhost:3090 http://127.0.0.1:3090
+      - "127.0.0.1:3040:4040" # pyroscope ui (profiling) http://otel:3040 http://localhost:3040 http://127.0.0.1:3040
+      - "127.0.0.1:3200:3200" # tempo (tracing)
+      - "127.0.0.1:4317:4317" # gRPC (OTeL)
+      - "127.0.0.1:4318:4318" # http (OTeL)
+    # volumes:
+    #   - ./container/grafana:/data/grafana
+    #   - ./container/prometheus:/data/prometheus
+    #   - ./container/loki:/data/loki
+    environment:
+      - GF_PATHS_DATA=/data/grafana
+
+  # === OPS API STACK ===
+  # custody-a / custody-b: ASP.NET HSM service, one per Privacy Node so each
+  # custody container's EVM_JSON_RPC points at the matching chain. The shared
+  # singleton approach failed deploys with INVALID_OPERATION on eth_estimateGas
+  # because TransactionService.cs builds Web3(config.EVM_JSON_RPC) per request
+  # — there's no per-request RPC override, so 1 custody can only serve 1 chain.
+  #
+  # Each container has its own DB (raylzdb_a/raylzdb_b) so wallets and
+  # transaction history stay scoped to that chain. The bootstrap step runs
+  # against each ops-api → its matching custody.
+  custody-a:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5032:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      # Per-instance NuGet cache: custody-a and custody-b both run `dotnet restore`
+      # in parallel at startup; a SHARED cache volume races on package extraction
+      # (temp .xxx files vanish, "Directory not empty") and corrupts the build.
+      - custody-a-nuget-cache:/root/.nuget/packages
+      - custody-a-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_a
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_A_CHAIN_ID:-12345}
+      EVM_JSON_RPC: ${PRIVACY_NODE_A_RPC_URL:-http://pn-a:8545}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  custody-b:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5033:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      # Per-instance NuGet cache (see custody-a note) — avoids the parallel-restore
+      # corruption from sharing one cache volume between custody-a and custody-b.
+      - custody-b-nuget-cache:/root/.nuget/packages
+      - custody-b-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_b
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_B_CHAIN_ID:-12346}
+      EVM_JSON_RPC: ${PRIVACY_NODE_B_RPC_URL:-http://pn-b:8546}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  custody-c:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5034:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      - custody-c-nuget-cache:/root/.nuget/packages
+      - custody-c-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_c
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_C_CHAIN_ID:-12347}
+      EVM_JSON_RPC: ${PRIVACY_NODE_C_RPC_URL:-http://pn-c:8547}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  custody-d:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5035:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      - custody-d-nuget-cache:/root/.nuget/packages
+      - custody-d-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_d
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_D_CHAIN_ID:-12348}
+      EVM_JSON_RPC: ${PRIVACY_NODE_D_RPC_URL:-http://pn-d:8548}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  custody-e:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5036:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      - custody-e-nuget-cache:/root/.nuget/packages
+      - custody-e-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_e
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_E_CHAIN_ID:-12349}
+      EVM_JSON_RPC: ${PRIVACY_NODE_E_RPC_URL:-http://pn-e:8549}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  custody-f:
+    build:
+      context: ../rayls-privacy-custody-light
+      dockerfile: Dockerfile.dev
+    ports:
+      - 127.0.0.1:5037:5000
+    volumes:
+      - ../rayls-privacy-custody-light:/app
+      - custody-f-nuget-cache:/root/.nuget/packages
+      - custody-f-dotnet-cache:/app/src/Rayls.Custody.HSM.API/obj
+    environment:
+      ASPNETCORE_ENVIRONMENT: LOC
+      MACHINE: DEBUG
+      POSTGRESQL_SERVER: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: admin
+      POSTGRESQL_DBNAME: raylzdb_f
+      AUTH_API_KEY: dev
+      AUTH_JWT_SECRET: dev-jwt-secret-do-not-use-in-prod
+      EVM_JSON_RPC_CHAIN_ID: ${PRIVACY_NODE_F_CHAIN_ID:-12350}
+      EVM_JSON_RPC: ${PRIVACY_NODE_F_RPC_URL:-http://pn-f:8550}
+      USES_AWS: "false"
+      KMS_MAX_WALLETS: 200
+      KEYSTORE_MAX_WALLETS: 20
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        dotnet restore src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj
+        while true; do
+          dotnet run \
+            --project src/Rayls.Custody.HSM.API/Rayls.Custody.HSM.API.csproj \
+            --no-launch-profile \
+            --urls "http://+:5000"
+          echo "Custody app exited, restarting in 5s..."
+          sleep 5
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  # ops-api-a: HTTP API for participant A. The code is single-instance by design;
+  # we run two containers with per-participant env overrides (DATABASE_CONNECTIONSTRING,
+  # PN_RPC_URL) to match the relayer-a / relayer-b pattern.
+  ops-api-a:
+    <<: *ops-api-base
+    volumes:
+      # YAML merge replaces (not appends) `volumes:` from the anchor, so the
+      # source bind-mount and the NATS mTLS certs must be repeated here.
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-a-go-modules:/go/pkg/mod
+      # Per-container tmp dir masks the shared bind-mount so air doesn't race
+      # against the other ops-* containers on /app/tmp/app/<binary>.
+      - ops-api-a-tmp:/app/tmp
+    # YAML merge replaces `depends_on` too, so we repeat the anchor's deps
+    # alongside the per-instance custody-a.
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-a: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:9780:8080
+      - 127.0.0.1:2345:2345
+    environment:
+      INSTANCE_NAME: a
+      BASE_URL: http://localhost:9780
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:9780;http://localhost:9880"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_a sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant
+      # (see docker/development/postgres-init.sh + BLOCKSCOUT_ENABLED path).
+      # ops-api installs LISTEN/NOTIFY triggers on it and backfills tokens.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-a?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-a:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_A_RPC_URL:-http://pn-a:8545}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_A_RPC_URL:-http://pn-a:8545}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_A_DEPLOYMENT_PROXY_REGISTRY:-}
+      # Destination chain ID packed into teleportToPublicChain calldata. Defaults to
+      # the pc-genesis chain id (0x1CA3 = 7331).
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      # OAuth credentials sourced from .env.oauth (gitignored). When empty,
+      # /auth/google/login and /auth/microsoft/login respond 404 (boot still OK).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-a
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-a:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-a-go-modules:/go/pkg/mod
+      - ops-worker-a-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2346:2345
+    environment:
+      INSTANCE_NAME: a
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_a sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant
+      # (see docker/development/postgres-init.sh + BLOCKSCOUT_ENABLED path).
+      # ops-api installs LISTEN/NOTIFY triggers on it and backfills tokens.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-a?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_A_RPC_URL:-http://pn-a:8545}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_A_RPC_URL:-http://pn-a:8545}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_A_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-a:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      # Worker doesn't expose OAuth endpoints but reuses Config.Auth — pass-through
+      # keeps env parity with ops-api-a and avoids a config divergence surprise.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      # Block the AccessManager indexer backfills from. start_dev.sh snapshots the PN's
+      # pre-deploy tip on a clean remote run; defaults to 0 for local / non-clean (where the
+      # DB cursor already exists). Without it, remote backfills from genesis (~1h, see issue).
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_A_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-a
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-api-b:
+    <<: *ops-api-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-b-go-modules:/go/pkg/mod
+      - ops-api-b-tmp:/app/tmp
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-b: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:9880:8080
+      - 127.0.0.1:2347:2345
+    environment:
+      INSTANCE_NAME: b
+      BASE_URL: http://localhost:9880
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:9780;http://localhost:9880"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_b sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-b?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-b:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_B_RPC_URL:-http://pn-b:8546}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_B_RPC_URL:-http://pn-b:8546}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_B_DEPLOYMENT_PROXY_REGISTRY:-}
+      # Destination chain ID packed into teleportToPublicChain calldata. Defaults to
+      # the pc-genesis chain id (0x1CA3 = 7331).
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      # OAuth credentials sourced from .env.oauth (gitignored). When empty,
+      # /auth/google/login and /auth/microsoft/login respond 404 (boot still OK).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-b
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-b:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-b-go-modules:/go/pkg/mod
+      - ops-worker-b-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2348:2345
+    environment:
+      INSTANCE_NAME: b
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_b sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-b?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_B_RPC_URL:-http://pn-b:8546}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_B_RPC_URL:-http://pn-b:8546}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_B_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-b:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      # Worker doesn't expose OAuth endpoints but reuses Config.Auth — pass-through
+      # keeps env parity with ops-api-b and avoids a config divergence surprise.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      # Block the AccessManager indexer backfills from. start_dev.sh snapshots the PN's
+      # pre-deploy tip on a clean remote run; defaults to 0 for local / non-clean (where the
+      # DB cursor already exists). Without it, remote backfills from genesis (~1h, see issue).
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_B_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-b
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-api-c:
+    <<: *ops-api-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-c-go-modules:/go/pkg/mod
+      - ops-api-c-tmp:/app/tmp
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-c: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:9980:8080
+      - 127.0.0.1:2349:2345
+    environment:
+      INSTANCE_NAME: c
+      BASE_URL: http://localhost:9980
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:3703;http://localhost:3704;http://localhost:3705;http://localhost:3706;http://localhost:9780;http://localhost:9880;http://localhost:9980;http://localhost:10080;http://localhost:10180;http://localhost:10280"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_c sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-c?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-c:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_C_RPC_URL:-http://pn-c:8547}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_C_RPC_URL:-http://pn-c:8547}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_C_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-c
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-c:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-c-go-modules:/go/pkg/mod
+      - ops-worker-c-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2350:2345
+    environment:
+      INSTANCE_NAME: c
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_c sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-c?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_C_RPC_URL:-http://pn-c:8547}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_C_RPC_URL:-http://pn-c:8547}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_C_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-c:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_C_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-c
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-api-d:
+    <<: *ops-api-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-d-go-modules:/go/pkg/mod
+      - ops-api-d-tmp:/app/tmp
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-d: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:10080:8080
+      - 127.0.0.1:2351:2345
+    environment:
+      INSTANCE_NAME: d
+      BASE_URL: http://localhost:10080
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:3703;http://localhost:3704;http://localhost:3705;http://localhost:3706;http://localhost:9780;http://localhost:9880;http://localhost:9980;http://localhost:10080;http://localhost:10180;http://localhost:10280"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_d sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-d?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-d:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_D_RPC_URL:-http://pn-d:8548}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_D_RPC_URL:-http://pn-d:8548}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_D_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-d
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-d:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-d-go-modules:/go/pkg/mod
+      - ops-worker-d-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2352:2345
+    environment:
+      INSTANCE_NAME: d
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_d sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-d?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_D_RPC_URL:-http://pn-d:8548}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_D_RPC_URL:-http://pn-d:8548}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_D_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-d:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_D_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-d
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-api-e:
+    <<: *ops-api-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-e-go-modules:/go/pkg/mod
+      - ops-api-e-tmp:/app/tmp
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-e: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:10180:8080
+      - 127.0.0.1:2353:2345
+    environment:
+      INSTANCE_NAME: e
+      BASE_URL: http://localhost:10180
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:3703;http://localhost:3704;http://localhost:3705;http://localhost:3706;http://localhost:9780;http://localhost:9880;http://localhost:9980;http://localhost:10080;http://localhost:10180;http://localhost:10280"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_e sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-e?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-e:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_E_RPC_URL:-http://pn-e:8549}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_E_RPC_URL:-http://pn-e:8549}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_E_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-e
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-e:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-e-go-modules:/go/pkg/mod
+      - ops-worker-e-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2354:2345
+    environment:
+      INSTANCE_NAME: e
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_e sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-e?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_E_RPC_URL:-http://pn-e:8549}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_E_RPC_URL:-http://pn-e:8549}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_E_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-e:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_E_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-e
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-api-f:
+    <<: *ops-api-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-api-f-go-modules:/go/pkg/mod
+      - ops-api-f-tmp:/app/tmp
+    depends_on:
+      contracts: { condition: service_healthy }
+      postgres:  { condition: service_healthy }
+      nats:      { condition: service_healthy }
+      custody-f: { condition: service_healthy }
+    ports:
+      - 127.0.0.1:10280:8080
+      - 127.0.0.1:2355:2345
+    environment:
+      INSTANCE_NAME: f
+      BASE_URL: http://localhost:10280
+      CORSURLS: "http://localhost:3000;http://localhost:3700;http://localhost:3701;http://localhost:3702;http://localhost:3703;http://localhost:3704;http://localhost:3705;http://localhost:3706;http://localhost:9780;http://localhost:9880;http://localhost:9980;http://localhost:10080;http://localhost:10180;http://localhost:10280"
+      RAYLS_MODE: privacy_node
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_f sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-f?sslmode=disable"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-f:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_F_RPC_URL:-http://pn-f:8550}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_F_RPC_URL:-http://pn-f:8550}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_F_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      POST_LOGIN_REDIRECT_URL: http://localhost:3700
+      OTEL_SERVICE_NAME: ops-api-f
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  ops-worker-f:
+    <<: *ops-worker-base
+    volumes:
+      - ../rayls-privacy-ops-api:/app
+      - ./private-relayer/certs:/nats-certs:ro
+      - ops-worker-f-go-modules:/go/pkg/mod
+      - ops-worker-f-tmp:/app/tmp
+    ports:
+      - 127.0.0.1:2356:2345
+    environment:
+      INSTANCE_NAME: f
+      BASE_URL: http://localhost:8080
+      RAYLS_MODE: privacy_node
+      CORSURLS: "http://localhost:3000"
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+      DATABASE_CONNECTIONSTRING: "host=postgres port=5432 user=admin password=admin dbname=ops_api_f sslmode=disable"
+      # Unified Postgres also hosts the Blockscout DB for this participant.
+      BLOCKSCOUT_DB_CONN: "postgres://admin:admin@postgres:5432/blockscout_pn-f?sslmode=disable"
+      NATS_URL: "nats://nats:4222"
+      NATS_TLS_CA_FILE: /nats-certs/ca.crt
+      NATS_TLS_CERT_FILE: /nats-certs/private-relayer.crt
+      NATS_TLS_KEY_FILE: /nats-certs/private-relayer.key
+      PN_RPC_URL: "${PRIVACY_NODE_F_RPC_URL:-http://pn-f:8550}"
+      BLOCKCHAIN_RPC_URL: "${PRIVACY_NODE_F_RPC_URL:-http://pn-f:8550}"
+      DEPLOYMENT_PROXY_REGISTRY_ADDR: ${OPS_API_F_DEPLOYMENT_PROXY_REGISTRY:-}
+      PUBLIC_CHAIN_CHAIN_ID: "${PUBLIC_CHAIN_ID:-7331}"
+      CUSTODY_RAYLS_HSM_URL: "http://custody-f:5000"
+      CUSTODY_RAYLS_HSM_API_KEY: dev  # dev-only — do not use in prod
+      CUSTODY_RAYLS_HSM_PASSWORD: dev-password  # dev-only — do not use in prod
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      BLOCKCHAIN_STARTING_BLOCK: ${OPS_API_F_STARTING_BLOCK:-0}
+      OTEL_SERVICE_NAME: ops-worker-f
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+
+  # playground: Next.js 16 dApp from ../rayls-privacy-playground. The repo's
+  # Dockerfile is production-only (3-stage standalone build) — for dev we run
+  # `npm run dev` directly on node:20-alpine with the source bind-mounted so
+  # hot-reload works without rebuilding. `node_modules` lives in a named volume
+  # so the host bind-mount doesn't shadow it and recreates skip reinstall.
+  #
+  # Server-side env (BLOCKSCOUT_<chainId>) is read at runtime by the API routes
+  # under /api/blockscout/[chainId]. Client-side NEXT_PUBLIC_* are normally
+  # baked at build time but in `npm run dev` they're read from process.env at
+  # request time, which lets us point the dApp at our local ops-api and chains
+  # without rebuilding the image.
+  # playground-hub: dApp bound to the Private Hub (chain 1337). The Hub has no
+  # dedicated ops-api yet, so OPS_SERVICE_URL points at ops-api-a as a
+  # placeholder — identity/cookie flow works, but Hub-only views may show
+  # restricted until a Hub-side ops-api exists.
+  playground-hub:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-hub-modules:/app/node_modules
+      - playground-hub-next:/app/.next
+    ports:
+      - 127.0.0.1:3700:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "1337"
+      NEXT_PUBLIC_CHAIN_NAME: "Private Hub"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:3445
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${PNH_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "true"
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:9780
+      # Server-side fetches from Next.js route handlers use this URL (the
+      # client-side NEXT_PUBLIC_* points at the host, which the container
+      # can't reach). Service-name DNS within the Compose network.
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-a:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      NEXT_PUBLIC_PH_AUDITOR_ADDRESS: ${PH_AUDITOR_ADDRESS:-}
+    depends_on:
+      ops-api-a:
+        condition: service_healthy
+
+  # playground-a: dApp bound to Privacy Node A (chain 12345). Talks to
+  # ops-api-a for auth and to BLOCKSCOUT_12345 (server-side proxy) for the
+  # block explorer.
+  playground-a:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-a-modules:/app/node_modules
+      - playground-a-next:/app/.next
+    ports:
+      - 127.0.0.1:3701:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12345"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node A"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8545
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_A_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_A_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:9780
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-a:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      # Server-side: /api/blockscout/[chainId] reads BLOCKSCOUT_<chainId>.
+      # host.docker.internal reaches the Blockscout proxy bound on the host.
+      BLOCKSCOUT_12345: http://host.docker.internal:8480
+    depends_on:
+      ops-api-a:
+        condition: service_healthy
+
+  # playground-b: dApp bound to Privacy Node B (chain 12346). Talks to
+  # ops-api-b for auth and to BLOCKSCOUT_12346 for the block explorer.
+  playground-b:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-b-modules:/app/node_modules
+      - playground-b-next:/app/.next
+    ports:
+      - 127.0.0.1:3702:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12346"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node B"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8546
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_B_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_B_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:9880
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-b:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      BLOCKSCOUT_12346: http://host.docker.internal:8580
+    depends_on:
+      ops-api-b:
+        condition: service_healthy
+
+  playground-c:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-c-modules:/app/node_modules
+      - playground-c-next:/app/.next
+    ports:
+      - 127.0.0.1:3703:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12347"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node C"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8547
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_C_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_C_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:9980
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-c:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      BLOCKSCOUT_12347: http://host.docker.internal:8680
+    depends_on:
+      ops-api-c:
+        condition: service_healthy
+
+  playground-d:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-d-modules:/app/node_modules
+      - playground-d-next:/app/.next
+    ports:
+      - 127.0.0.1:3704:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12348"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node D"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8548
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_D_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_D_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:10080
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-d:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      BLOCKSCOUT_12348: http://host.docker.internal:8780
+    depends_on:
+      ops-api-d:
+        condition: service_healthy
+
+  playground-e:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-e-modules:/app/node_modules
+      - playground-e-next:/app/.next
+    ports:
+      - 127.0.0.1:3705:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12349"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node E"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8549
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_E_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_E_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:10180
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-e:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      BLOCKSCOUT_12349: http://host.docker.internal:8880
+    depends_on:
+      ops-api-e:
+        condition: service_healthy
+
+  playground-f:
+    <<: *playground-base
+    volumes:
+      - ../rayls-privacy-playground:/app
+      - playground-f-modules:/app/node_modules
+      - playground-f-next:/app/.next
+    ports:
+      - 127.0.0.1:3706:3000
+    environment:
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_CHAIN_ID: "12350"
+      NEXT_PUBLIC_CHAIN_NAME: "Privacy Node F"
+      NEXT_PUBLIC_CHAIN_RPC_URL: http://localhost:8550
+      NEXT_PUBLIC_CHAIN_REGISTRY_ADDRESS: ${OPS_API_F_DEPLOYMENT_PROXY_REGISTRY:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_CHAIN_IS_HUB: "false"
+      NEXT_PUBLIC_CHAIN_AUDITOR_ADDRESS: ${PN_F_AUDITOR_ADDRESS:-}
+      NEXT_PUBLIC_OPS_SERVICE_URL: http://localhost:10280
+      # Server-side fetches use this URL (see playground-hub comment).
+      OPS_SERVICE_INTERNAL_URL: http://ops-api-f:8080
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${WALLETCONNECT_PROJECT_ID:-}
+      BLOCKSCOUT_12350: http://host.docker.internal:8980
+    depends_on:
+      ops-api-f:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  ops-api-a-go-modules:
+  ops-api-a-tmp:
+  ops-api-b-go-modules:
+  ops-api-b-tmp:
+  ops-api-c-go-modules:
+  ops-api-c-tmp:
+  ops-api-d-go-modules:
+  ops-api-d-tmp:
+  ops-api-e-go-modules:
+  ops-api-e-tmp:
+  ops-api-f-go-modules:
+  ops-api-f-tmp:
+  ops-worker-a-go-modules:
+  ops-worker-a-tmp:
+  ops-worker-b-go-modules:
+  ops-worker-b-tmp:
+  ops-worker-c-go-modules:
+  ops-worker-c-tmp:
+  ops-worker-d-go-modules:
+  ops-worker-d-tmp:
+  ops-worker-e-go-modules:
+  ops-worker-e-tmp:
+  ops-worker-f-go-modules:
+  ops-worker-f-tmp:
+  custody-a-nuget-cache:
+  custody-b-nuget-cache:
+  custody-c-nuget-cache:
+  custody-d-nuget-cache:
+  custody-e-nuget-cache:
+  custody-f-nuget-cache:
+  custody-a-dotnet-cache:
+  custody-b-dotnet-cache:
+  custody-c-dotnet-cache:
+  custody-d-dotnet-cache:
+  custody-e-dotnet-cache:
+  custody-f-dotnet-cache:
+  playground-hub-modules:
+  playground-hub-next:
+  playground-a-modules:
+  playground-a-next:
+  playground-b-modules:
+  playground-b-next:
+  playground-c-modules:
+  playground-c-next:
+  playground-d-modules:
+  playground-d-next:
+  playground-e-modules:
+  playground-e-next:
+  playground-f-modules:
+  playground-f-next:
+  # Axyl PN volumes (4 validator data + 1 genesis per PN)
+  pn-a-v1-data:
+  pn-a-genesis-data:
+  pn-b-v1-data:
+  pn-b-genesis-data:
+  pn-c-v1-data:
+  pn-c-genesis-data:
+  pn-d-v1-data:
+  pn-d-genesis-data:
+  pn-e-v1-data:
+  pn-e-genesis-data:
+  pn-f-v1-data:
+  pn-f-genesis-data:
+  # Axyl public-chain volumes (4 validator data + 1 genesis)
+  pc-v1-data:
+  pc-genesis-data:
+
+# Axyl PN networks (one per PN for validator P2P communication)
+networks:
+  pn-a-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/16
+  pn-b-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/16
+  pn-c-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.30.0.0/16
+  pn-d-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.40.0.0/16
+  pn-e-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.50.0.0/16
+  pn-f-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.60.0.0/16
+  # Axyl public-chain network (validator P2P communication)
+  pc-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.70.0.0/16

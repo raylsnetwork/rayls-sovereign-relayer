@@ -1,0 +1,179 @@
+syntax = "proto3";
+package rayls.cts.keys;
+
+option go_package = "github.com/raylsnetwork/rayls-privacy-relayer-api/cts/gen/proto/keys";
+
+service KeysService {
+    // View Keys
+    rpc CreateViewKeyPair(CreateViewKeyPairRequest) returns (CreateViewKeyPairResponse);
+    rpc GetViewPublicKey(GetViewPublicKeyRequest) returns (GetViewPublicKeyResponse);
+    rpc DeleteViewKeyPair(DeleteViewKeyPairRequest) returns (DeleteViewKeyPairResponse);
+
+    // Sign Keys
+    rpc CreateSignKeys(CreateSignKeysRequest) returns (CreateSignKeysResponse);
+    rpc GetSignKeys(GetSignKeysRequest) returns (GetSignKeysResponse);
+    rpc GetSignAddresses(GetSignAddressesRequest) returns (GetSignAddressesResponse);
+
+    // Key Agreement
+    rpc GenerateKeyAgreement(GenerateKeyAgreementRequest) returns (GenerateKeyAgreementResponse);
+    rpc CreateKeyAgreement(CreateKeyAgreementRequest) returns (CreateKeyAgreementResponse);
+    rpc CompleteKeyAgreement(CompleteKeyAgreementRequest) returns (CompleteKeyAgreementResponse);
+
+    // Payment Spend Keys
+    rpc CreatePaymentSpendKey(CreatePaymentSpendKeyRequest) returns (PaymentSpendKeyResponse);
+    rpc GetPaymentSpendKey(GetPaymentSpendKeyRequest) returns (PaymentSpendKeyResponse);
+
+    // Self Secret
+    rpc CreateSelfSecret(CreateSelfSecretRequest) returns (CreateSelfSecretResponse);
+
+    // Enygma
+    rpc GenerateEnygmaSharedSecrets(GenerateEnygmaSharedSecretsRequest) returns (GenerateEnygmaSharedSecretsResponse);
+    rpc RecoverViewSalt(RecoverViewSaltRequest) returns (RecoverViewSaltResponse);
+}
+
+// Enums
+
+enum ServiceType {
+    SERVICE_TYPE_UNSPECIFIED = 0;
+    SERVICE_TYPE_PUBLIC_RELAYER = 1;
+    SERVICE_TYPE_PRIVATE_RELAYER = 2;
+}
+
+// View Keys
+
+message CreateViewKeyPairRequest {
+    uint64 initialBlock = 1;
+}
+
+message CreateViewKeyPairResponse {
+    string publicKey = 1;
+}
+
+message GetViewPublicKeyRequest {
+    uint64 blockNumber = 1;
+}
+
+message GetViewPublicKeyResponse {
+    string publicKey = 1;
+}
+
+message DeleteViewKeyPairRequest {
+    string publicKey = 1;
+}
+
+message DeleteViewKeyPairResponse {}
+
+// Sign Keys
+
+enum KeySetName {
+    KEY_SET_NAME_UNSPECIFIED = 0;
+    KEY_SET_NAME_PUBLIC_CHAIN = 1;
+    KEY_SET_NAME_PRIVATE_CHAIN = 2;
+    KEY_SET_NAME_PRIVATE_HUB = 3;
+    KEY_SET_NAME_PRIVATE_HUB_DVP_OPERATOR = 4;
+    KEY_SET_NAME_PRIVACY_NODE = 5;
+}
+
+message StringList {
+    repeated string values = 1;
+}
+
+message CreateSignKeysRequest {
+    ServiceType serviceType = 1;
+}
+
+message CreateSignKeysResponse {
+    map<int32, StringList> keySets = 1;
+}
+
+message GetSignKeysRequest {
+    ServiceType serviceType = 1;
+}
+
+message GetSignKeysResponse {
+    map<int32, StringList> keySets = 1;
+}
+
+message GetSignAddressesRequest {
+    ServiceType serviceType = 1;
+}
+
+message GetSignAddressesResponse {
+    map<int32, StringList> addressSets = 1;
+}
+
+// Key Agreement
+
+message GenerateKeyAgreementRequest {
+    uint64 chainID = 1;
+    bytes publicKey = 2;
+}
+
+message GenerateKeyAgreementResponse {
+    bytes ciphertext = 1;
+    bytes sharedSecret = 2;
+    bytes digest = 3;
+}
+
+message CreateKeyAgreementRequest {
+    uint64 chainID = 1;
+    bytes sharedSecret = 2;
+    uint64 blockNumber = 3;
+}
+
+message CreateKeyAgreementResponse {}
+
+message CompleteKeyAgreementRequest {
+    uint64 chainID = 1;
+    bytes ciphertext = 2;
+    uint64 blockNumber = 3;
+}
+
+message CompleteKeyAgreementResponse {}
+
+// Payment Spend Keys
+
+message CreatePaymentSpendKeyRequest {
+    uint64 chainID = 1;
+}
+
+message GetPaymentSpendKeyRequest {}
+
+message PaymentSpendKeyResponse {
+    bytes secretKey = 1;
+    bytes publicKey = 2;
+}
+
+// Self Secret
+
+message CreateSelfSecretRequest {
+    bytes rFactor = 1;
+    uint64 blockNumber = 2;
+    bytes resourceID = 3;
+}
+
+message CreateSelfSecretResponse {}
+
+// Enygma
+
+message GenerateEnygmaSharedSecretsRequest {
+    repeated uint64 chainIDs = 1;
+    uint64 blockNumber = 2;
+    uint64 senderChainID = 3;
+    bytes prevRFactor = 4;
+    bytes resourceID = 5;
+}
+
+message GenerateEnygmaSharedSecretsResponse {
+    repeated bytes secrets = 1;
+    repeated bytes hashSecrets = 2;
+    repeated bytes messageTags = 3;
+}
+
+message RecoverViewSaltRequest {
+    uint64 blockNumber = 1;
+    bytes  ctxt        = 2;
+}
+message RecoverViewSaltResponse {
+    bytes salt = 1;
+}

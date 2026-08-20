@@ -1,0 +1,122 @@
+syntax = "proto3";
+package rayls.cts.txops;
+
+option go_package = "github.com/raylsnetwork/rayls-privacy-relayer-api/cts/gen/proto/txops";
+
+service PrivateHubTxOpsService {
+    rpc SignAndSend(SignAndSendRequest) returns (SignAndSendResponse);
+    rpc BatchSignAndSend(BatchSignAndSendRequest) returns (BatchSignAndSendResponse);
+    rpc Call(CallRequest) returns (CallResponse);
+}
+
+service PrivateNodeTxOpsService {
+    rpc SignAndSend(SignAndSendRequest) returns (SignAndSendResponse);
+    rpc BatchSignAndSend(BatchSignAndSendRequest) returns (BatchSignAndSendResponse);
+    rpc Call(CallRequest) returns (CallResponse);
+}
+
+service DVPOperatorTxOpsService {
+    rpc SignAndSend(SignAndSendRequest) returns (SignAndSendResponse);
+    rpc BatchSignAndSend(BatchSignAndSendRequest) returns (BatchSignAndSendResponse);
+    rpc Call(CallRequest) returns (CallResponse);
+}
+
+service PublicChainTxOpsService {
+    rpc SignAndSend(SignAndSendRequest) returns (SignAndSendResponse);
+    rpc BatchSignAndSend(BatchSignAndSendRequest) returns (BatchSignAndSendResponse);
+    rpc Call(CallRequest) returns (CallResponse);
+    rpc Deploy(DeployRequest) returns (DeployResponse);
+}
+
+service PrivateChainTxOpsService {
+    rpc SignAndSend(SignAndSendRequest) returns (SignAndSendResponse);
+    rpc BatchSignAndSend(BatchSignAndSendRequest) returns (BatchSignAndSendResponse);
+    rpc Call(CallRequest) returns (CallResponse);
+}
+
+// Convention used throughout this file:
+//   - Single-bytes-blob outcomes are inlined as `bytes` in the response
+//     oneof rather than wrapped in a dedicated message. The oneof arm name
+//     identifies what the bytes mean (receipt, revert_data, value, ...).
+//   - Multi-field outcomes (e.g. DeploySuccess, SignSuccess) keep their own
+//     typed message because they carry more than just one bytes payload.
+//   - Transport / infra failures (queue exhaustion, auth generation, node
+//     unreachable, context timeout) are NOT modeled in any response — they
+//     are returned as gRPC status errors so service meshes and retry
+//     interceptors can classify them correctly.
+
+// --- SignAndSend ---
+
+message SignAndSendRequest {
+    string id  = 1;
+    bytes data = 2;
+    string address = 3;
+}
+
+message SignAndSendResponse {
+    oneof result {
+        bytes receipt     = 1;
+        bytes revert_data = 2;
+    }
+}
+
+// --- Deploy ---
+
+message DeployRequest {
+    bytes bytecode    = 1;
+    bytes constructor = 2;
+}
+
+message DeployResponse {
+    oneof result {
+        DeploySuccess success     = 1;
+        bytes         revert_data = 2;
+    }
+}
+
+message DeploySuccess {
+    bytes  receipt = 1;
+    string address = 2;
+}
+
+// --- Call ---
+
+message CallRequest {
+    bytes data = 1;
+    string address = 2;
+}
+
+message CallResponse {
+    oneof result {
+        bytes value       = 1;
+        bytes revert_data = 2;
+    }
+}
+
+// --- Batch Sign-And-Send ---
+
+message BatchSignAndSendRequest {
+    repeated BatchSignAndSendItem items = 1;
+}
+
+message BatchSignAndSendItem {
+    string msg_id  = 1;
+    bytes  data    = 2;
+    string address = 3;
+}
+
+message BatchSignAndSendResponse {
+    map<string, BatchSignAndSendItemResult> results = 1;
+}
+
+message BatchSignAndSendItemResult {
+    oneof outcome {
+        bytes          receipt     = 1;
+        bytes          revert_data = 2;
+        BatchItemError error       = 3;
+    }
+}
+
+message BatchItemError {
+    string message = 1;
+}

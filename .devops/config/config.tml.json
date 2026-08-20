@@ -1,0 +1,26 @@
+"Database": {
+    "ConnectionString": The connection string for mongoDb
+    "Name": The name of the database
+  },
+  "Blockchain": {
+    "ChainID": chainId of your connected network,
+    "ChainURL": URL of your connected network,
+    "ChainWSURL": websocket URL of your connected network,
+    "MessageExecutorAddress": The message executor address,
+    "MessageDispatcherAddress": The message dispatcher address,
+    "BatchSize": The batch size of the transactions,
+    "ViewSecretKey": The view secret key that was generated in advance,
+    "ViewPublicKey": The view public key that was generated in advance,
+    "PrivateKey": The private key of the account that you are going to use to sign transactions,
+    "": The directory of where the new accounts key for the CC communication will be stored
+  },
+  "CommitChain": {
+    "ChainURL": The commit chain URL,
+    "ChainWSUrl": The commit chain WS Url,
+    "CommitChainPLStorageContract": The PLStorage contract address,
+    "ParticipantStorageContract": The ParticipantStorageContract address,
+    "ChainId": The chainId of the CC,
+    "StartingBlock": The block from where to relayer will start processing messages,
+    "PrivateKey": The private key of the account for signing CC tx
+  }
+}

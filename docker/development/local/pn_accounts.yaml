@@ -1,0 +1,7 @@
+# Extra native-balance prefunds merged into the PN subnet genesis alloc via
+# `rayls genesis --accounts`. Tests sign with this key (PRIVATE_KEY_SYSTEM in
+# rayls-privacy-tests-automation/.env) and need balance on every PN to do
+# value transfers (makeFundedWallet / makeRoleHolder / bootstrap-worker-wallets).
+# CC (genesis_cc.json) and the public chain already alloc this address directly.
+"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266":
+  balance: "0xD3C21BCECCEDA1000000"

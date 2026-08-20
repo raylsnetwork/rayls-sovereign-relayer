@@ -1,0 +1,19 @@
+fail_fast: true
+
+repos:
+# - repo: https://github.com/pre-commit/pre-commit-hooks
+#   rev: v2.3.0
+#   hooks:
+#   - id: check-yaml
+#   - id: end-of-file-fixer
+#   - id: trailing-whitespace
+- repo: local
+  hooks:
+  - id: custom-script-file
+    name: custom-script-file
+    entry: docker/hooks/pre-commit.sh
+    language: script
+    pass_filenames: false
+    verbose: true
+    log_file: pre-commit.log
+

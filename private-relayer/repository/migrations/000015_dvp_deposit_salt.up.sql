@@ -1,0 +1,2 @@
+ALTER TABLE dvp_deposits ADD COLUMN salt TEXT NOT NULL DEFAULT '';
+ALTER TABLE dvp_deposits DROP COLUMN IF EXISTS public_key;

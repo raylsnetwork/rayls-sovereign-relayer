@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="KOS-C (local)" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="github.com/raylsnetwork/rayls-privacy-relayer-api" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="run --env .C.env --port 8082" />
+    <kind value="FILE" />
+    <package value="github.com/raylsnetwork/rayls-privacy-relayer-api" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/key-operation-service-app/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

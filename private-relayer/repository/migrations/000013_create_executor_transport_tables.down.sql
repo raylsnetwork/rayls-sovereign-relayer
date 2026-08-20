@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS to_private_node_executor_transactions;
+DROP TABLE IF EXISTS to_private_hub_executor_transactions;

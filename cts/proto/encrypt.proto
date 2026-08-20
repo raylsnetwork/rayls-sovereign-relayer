@@ -1,0 +1,130 @@
+syntax = "proto3";
+package rayls.cs.encrypt;
+
+option go_package = "github.com/raylsnetwork/rayls-privacy-relayer-api/cts/gen/proto/encrypt";
+
+service EncryptService {
+    rpc Encrypt(EncryptRequest) returns (EncryptResponse);
+    rpc Decrypt(DecryptRequest) returns (DecryptResponse);
+    rpc EncryptWithoutFP(EncryptWithoutFPRequest) returns (EncryptWithoutFPResponse);
+    rpc DecryptWithoutFP(DecryptWithoutFPRequest) returns (DecryptWithoutFPResponse);
+    rpc EncryptWithoutFPWithSS(EncryptWithoutFPWithSSRequest) returns (EncryptWithoutFPWithSSResponse);
+    rpc DecryptWithoutFPWithSS(DecryptWithoutFPWithSSRequest) returns (DecryptWithoutFPWithSSResponse);
+
+    rpc EncryptPrivateKey(EncryptPrivateKeyRequest) returns (EncryptPrivateKeyResponse);
+    rpc DecryptEnygmaTransferBatch(DecryptEnygmaTransferBatchRequest) returns (DecryptEnygmaTransferBatchResponse);
+}
+
+message EncryptRequest {
+    bytes plaintext = 1;
+    uint64 chainID = 2;
+    uint64 blockNumber = 3;
+    string prevBlockHash = 4;
+}
+
+message EncryptResponse {
+    bytes encryptedData = 1;
+    string fingerprint = 2;
+}
+
+// DecryptOutcome describes the result of an attempted decryption. It is
+// returned on every Decrypt*Response so callers can distinguish a normal
+// "not for me" outcome from a genuine error. plaintext is only populated when
+// outcome == OUTCOME_OK.
+enum DecryptOutcome {
+    OUTCOME_UNSPECIFIED       = 0;
+    OUTCOME_OK                = 1;
+    // OUTCOME_NOT_FOR_RECIPIENT — the message is provably (message-tag path) or
+    // probabilistically (salt-based path) not addressed to this CTS instance.
+    OUTCOME_NOT_FOR_RECIPIENT = 2;
+    // OUTCOME_TAMPERED — a tag-matched ciphertext failed AEAD verification, or
+    // a caller-addressed ciphertext failed to decrypt with the chain's key.
+    // Implies tag collision, stale-key replay, or actual tampering.
+    OUTCOME_TAMPERED          = 3;
+}
+
+message DecryptRequest {
+    bytes encryptedData = 1;
+    string fingerprint = 2;
+    uint64 blockNumber = 3;
+    string prevBlockHash = 4;
+}
+
+message DecryptResponse {
+    bytes plaintext = 1;
+    DecryptOutcome outcome = 2;
+}
+
+message EncryptWithoutFPRequest {
+    bytes plaintext = 1;
+    uint64 chainID = 2;
+    uint64 blockNumber = 3;
+    // resourceID, when set, marks an Enygma transfer-batch seal. It lets the CTS use the
+    // self-aware secret selection (GetEnygmaSharedSelfSecret): the sender's own-chain (self/change)
+    // batch is sealed with the rotating per-resource self-secret — the SAME secret used for the
+    // on-chain message tag and ZK proof — instead of the static own-chain pairwise row. Empty for
+    // all non-Enygma callers, which keep the plain per-chain shared-secret seal.
+    bytes resourceID = 4;
+}
+
+message EncryptWithoutFPResponse {
+    bytes encryptedData = 1;
+}
+
+message DecryptWithoutFPRequest {
+    bytes encryptedData = 1;
+    uint64 chainID = 2;
+    uint64 blockNumber = 3;
+}
+
+message DecryptWithoutFPResponse {
+    bytes plaintext = 1;
+    DecryptOutcome outcome = 2;
+}
+
+
+message EncryptWithoutFPWithSSRequest {
+    bytes plaintext = 1;
+    bytes ss = 2;
+}
+
+message EncryptWithoutFPWithSSResponse {
+    bytes encryptedData = 1;
+}
+
+message DecryptWithoutFPWithSSRequest {
+    bytes encryptedData = 1;
+    bytes ss = 2;
+}
+
+message DecryptWithoutFPWithSSResponse {
+    bytes plaintext = 1;
+    DecryptOutcome outcome = 2;
+}
+
+message DecryptEnygmaTransferBatchRequest {
+    bytes encryptedData = 1;
+    bytes messageTag = 2;
+    uint64 blockNumber = 3;
+    repeated uint64 anonymitySet = 4;
+    uint64 chainID = 5;
+    bytes resourceID = 6;
+}
+
+message DecryptEnygmaTransferBatchResponse {
+    bytes plaintext = 1;
+    DecryptOutcome outcome = 2;
+}
+
+message EncryptPrivateKeyRequest {
+    uint64 chainID = 1;
+    uint64 blockNumber = 2;
+}
+
+message EncryptPrivateKeyResponse {
+    string publicKeyHex = 1;
+    bytes encryptedPrivateKey = 2;
+    bytes mac = 3;
+    uint64 initialBlock = 4;
+}
+
