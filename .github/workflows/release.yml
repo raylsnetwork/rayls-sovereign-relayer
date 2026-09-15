@@ -19,7 +19,7 @@ jobs:
         [
           {"image": "relayer-private", "dockerfile": "private-relayer/Dockerfile"},
           {"image": "relayer-public",  "dockerfile": "public-relayer/Dockerfile"},
-          {"image": "cts",             "dockerfile": "cts/Dockerfile"}
+          {"image": "relayer-cts",     "dockerfile": "cts/Dockerfile"}
         ]
     secrets:
       AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
