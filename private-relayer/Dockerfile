@@ -1,32 +1,35 @@
 # Build context must be the repo root:
 #   docker build -f private-relayer/Dockerfile .
-FROM golang:1.26.4-bookworm AS build
+#
+# The build stage always runs on the native architecture and cross-compiles to
+# the target. Go with CGO_ENABLED=0 cross-compiles cleanly, so arm64 images do
+# not pay for QEMU emulation.
+FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm AS build
 
 WORKDIR /app
 
+# Dependencies first — this layer is reused until go.mod/go.sum change.
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
-RUN rm -rf go.sum
-RUN go clean -modcache
-RUN ls
-RUN go mod tidy
-RUN CGO_ENABLED=0 make
+
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} make build-relayer
 
 FROM scratch
 
-# Create the /app directory in the container
 WORKDIR /app
 
-# Copy the binary from the build stage to the current stage
 COPY --from=build /app/build/relayer /app/rayls-sovereign-relayer
 
-# Coppy the migrations folder and files
+# Migrations applied by the relayer at startup
 COPY --from=build /app/private-relayer/repository/migrations /app/repository/migrations
 
-# Copy the contract bindings (used for custom error decoding)
+# Contract bindings (used for custom error decoding)
 COPY --from=build /app/contracts /app/contracts
 
-# Copy the SSL certificates
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Set the binary as the entry point of the container
 ENTRYPOINT ["/app/rayls-sovereign-relayer", "run"]
