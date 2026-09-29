@@ -64,7 +64,6 @@ func executorTestPnChainId() *big.Int {
 func executorTestConfig() service.ExecutorConfig {
 	return service.ExecutorConfig{
 		DefaultContextTimeout: 5 * time.Second,
-		MaxNumberOfJSDeposits: 10,
 	}
 }
 
@@ -1288,7 +1287,6 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("successfully executes withdrawal", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		conf.MaxNumberOfJSDeposits = 2
 		resourceId := executorTestResourceId()
 		blockNumber := executorTestBlockNumber()
 		enygmaAddress := executorTestEnygmaAddress()
@@ -1300,15 +1298,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		senderRFactor := big.NewInt(456)
 		integrationAddress := common.HexToAddress("0xintegration5678")
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1329,9 +1321,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 				ctx context.Context,
 				params enygma.WithdrawProofParams,
 			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositCommitments))
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositSecretKeys))
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositAmounts))
+				assert.Equal(t, big.NewInt(250), params.PaymentCommitment)
+				assert.Equal(t, paymentSalt, params.PaymentSalt)
+				assert.NotNil(t, params.PaymentSecretKey)
 				assert.Equal(t, 2, len(params.Batches))
 				assert.Equal(t, resourceId, params.ResourceId)
 				assert.Equal(t, amount, params.SenderAmount)
@@ -1396,7 +1388,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1431,15 +1423,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{}
@@ -1476,7 +1462,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1499,15 +1485,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{}
@@ -1540,7 +1520,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1563,15 +1543,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1613,7 +1587,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1636,15 +1610,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1693,7 +1661,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1716,14 +1684,8 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
-		jsProof := &dvp.ProofReceipt{}
+		paymentSalt := big.NewInt(1)
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1776,7 +1738,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1799,15 +1761,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1877,7 +1833,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1901,15 +1857,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+		paymentSalt := big.NewInt(1)
 
-		jsProof := &dvp.ProofReceipt{}
+		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1983,7 +1933,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			"test-batch-id",
 			resourceId,
 			amount,
-			deposits,
+			paymentSalt,
 			blockNumber,
 			enygmaAddress,
 			jsProof,
@@ -1994,4 +1944,72 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
 	})
+}
+
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		receipt *dvp.ProofReceipt
+		wantErr string
+	}{
+		{
+			name:    "receipt payment output differs from the withdrawn amount's commitment",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(251), big.NewInt(0)}},
+			wantErr: "does not match withdraw payment commitment",
+		},
+		{
+			name:    "change output in place of the payment output",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(0), big.NewInt(250)}},
+			wantErr: "does not match withdraw payment commitment",
+		},
+		{
+			name:    "receipt without outputs",
+			receipt: &dvp.ProofReceipt{},
+			wantErr: "join-split receipt has no payment output",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			proofGen := &executorProofGeneratorMock{}
+			batcher := &executorEnygmaBatcherMock{}
+			executor := service.NewEnygmaExecutor(
+				executorTestConfig(),
+				&testutils.MockTracer{},
+				batcher,
+				proofGen,
+				&executorEnygmaHistoryRepositoryMock{},
+				successKeysClient(),
+				&executorEnygmaClientMock{},
+				&ExecutorDvpIntegrationClientMock{},
+				&executorCommitmentCalculatorMock{
+					CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
+						return big.NewInt(250), nil
+					},
+				},
+				executorTestPnChainId(),
+			)
+
+			err := executor.ExecuteEnygmaWithdrawal(
+				context.Background(),
+				"test-batch-id",
+				executorTestResourceId(),
+				executorTestAmount(),
+				big.NewInt(1),
+				executorTestBlockNumber(),
+				executorTestEnygmaAddress(),
+				tc.receipt,
+				executorTestFromAddress(),
+				executorTestTxHash(),
+			)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+			// Fails before batching or proving.
+			assert.Empty(t, batcher.CreateBatchesWithAnonimityCalls())
+			assert.Empty(t, proofGen.GenerateWithdrawProofCalls())
+		})
+	}
 }

@@ -208,10 +208,9 @@ func (s *EnygmaProofService) GenerateWithdrawProof(
 	proof, err := s.proofClient.CreateWithdrawProof(params.AnonymityIndex, types.WithdrawProofRequest{
 		CommonProofRequest: commonProofRequest,
 		TokenAddress:       params.TokenAddress,
-		DepositCommitments: params.DepositCommitments,
-		DepositSecretKeys:  params.DepositSecretKeys,
-		DepositAmounts:     params.DepositAmounts,
-		DepositSalts:       params.DepositSalts,
+		PaymentCommitment:  params.PaymentCommitment,
+		PaymentSecretKey:   params.PaymentSecretKey,
+		PaymentSalt:        params.PaymentSalt,
 	})
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("creating withdraw proof: %w", err)
