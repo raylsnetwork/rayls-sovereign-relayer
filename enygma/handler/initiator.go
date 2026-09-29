@@ -124,7 +124,7 @@ type initiatorEnygmaExecutor interface {
 	ExecuteEnygmaSupplyUpdate(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error
 	ExecuteEnygmaCrossTransfer(ctx context.Context, batchID string, blockNumber uint64, resourceId string, batch map[string][]*types.EnygmaTransferBatchTx, enygmaAddress common.Address) error
 	ExecuteEnygmaDeposit(ctx context.Context, id string, resourceId string, amount *big.Int, blockNumber uint64, commitment *big.Int, salt *big.Int, from common.Address, txHash common.Hash, enygmaAddress common.Address) error
-	ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
+	ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, paymentSalt *big.Int, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
 }
 
 type initiatorEnygmaFinalizationService interface {
@@ -572,7 +572,7 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 				chainEventID,
 				resourceId,
 				amount,
-				jsDeposits,
+				destSalt,
 				nextBlockNumber,
 				enygmaAddress,
 				jsProof,

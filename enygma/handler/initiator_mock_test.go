@@ -1357,7 +1357,7 @@ func (mock *initiatorEnygmaBatcherMock) CreateBatchesWithAnonimityCalls() []stru
 //			ExecuteEnygmaSupplyUpdateFunc: func(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error {
 //				panic("mock out the ExecuteEnygmaSupplyUpdate method")
 //			},
-//			ExecuteEnygmaWithdrawalFunc: func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
+//			ExecuteEnygmaWithdrawalFunc: func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, paymentSalt *big.Int, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
 //				panic("mock out the ExecuteEnygmaWithdrawal method")
 //			},
 //		}
@@ -1377,7 +1377,7 @@ type initiatorEnygmaExecutorMock struct {
 	ExecuteEnygmaSupplyUpdateFunc func(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error
 
 	// ExecuteEnygmaWithdrawalFunc mocks the ExecuteEnygmaWithdrawal method.
-	ExecuteEnygmaWithdrawalFunc func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
+	ExecuteEnygmaWithdrawalFunc func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, paymentSalt *big.Int, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -1444,8 +1444,8 @@ type initiatorEnygmaExecutorMock struct {
 			ResourceId string
 			// Amount is the amount argument value.
 			Amount *big.Int
-			// Deposits is the deposits argument value.
-			Deposits []*types.DvpDeposit
+			// PaymentSalt is the paymentSalt argument value.
+			PaymentSalt *big.Int
 			// BlockNumber is the blockNumber argument value.
 			BlockNumber uint64
 			// EnygmaAddress is the enygmaAddress argument value.
@@ -1637,7 +1637,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaSupplyUpdateCalls() []stru
 }
 
 // ExecuteEnygmaWithdrawal calls ExecuteEnygmaWithdrawalFunc.
-func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
+func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, paymentSalt *big.Int, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
 	if mock.ExecuteEnygmaWithdrawalFunc == nil {
 		panic("initiatorEnygmaExecutorMock.ExecuteEnygmaWithdrawalFunc: method is nil but initiatorEnygmaExecutor.ExecuteEnygmaWithdrawal was just called")
 	}
@@ -1646,7 +1646,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Con
 		ChainEventID  string
 		ResourceId    string
 		Amount        *big.Int
-		Deposits      []*types.DvpDeposit
+		PaymentSalt   *big.Int
 		BlockNumber   uint64
 		EnygmaAddress common.Address
 		Proof         *dvp.ProofReceipt
@@ -1657,7 +1657,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Con
 		ChainEventID:  chainEventID,
 		ResourceId:    resourceId,
 		Amount:        amount,
-		Deposits:      deposits,
+		PaymentSalt:   paymentSalt,
 		BlockNumber:   blockNumber,
 		EnygmaAddress: enygmaAddress,
 		Proof:         proof,
@@ -1667,7 +1667,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Con
 	mock.lockExecuteEnygmaWithdrawal.Lock()
 	mock.calls.ExecuteEnygmaWithdrawal = append(mock.calls.ExecuteEnygmaWithdrawal, callInfo)
 	mock.lockExecuteEnygmaWithdrawal.Unlock()
-	return mock.ExecuteEnygmaWithdrawalFunc(ctx, chainEventID, resourceId, amount, deposits, blockNumber, enygmaAddress, proof, from, txHash)
+	return mock.ExecuteEnygmaWithdrawalFunc(ctx, chainEventID, resourceId, amount, paymentSalt, blockNumber, enygmaAddress, proof, from, txHash)
 }
 
 // ExecuteEnygmaWithdrawalCalls gets all the calls that were made to ExecuteEnygmaWithdrawal.
@@ -1679,7 +1679,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawalCalls() []struct
 	ChainEventID  string
 	ResourceId    string
 	Amount        *big.Int
-	Deposits      []*types.DvpDeposit
+	PaymentSalt   *big.Int
 	BlockNumber   uint64
 	EnygmaAddress common.Address
 	Proof         *dvp.ProofReceipt
@@ -1691,7 +1691,7 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawalCalls() []struct
 		ChainEventID  string
 		ResourceId    string
 		Amount        *big.Int
-		Deposits      []*types.DvpDeposit
+		PaymentSalt   *big.Int
 		BlockNumber   uint64
 		EnygmaAddress common.Address
 		Proof         *dvp.ProofReceipt
