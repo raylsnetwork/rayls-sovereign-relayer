@@ -784,9 +784,8 @@ services:
     # it chowns to CUSTOM_UID land owned by us on the host (not a 100999 subuid).
     volumes:
       - ../rayls-sovereign-contracts/.env:/parfin/rayls-privacy-contracts/.env
-      - ../rayls-sovereign-pnh-governance/config:/parfin/rayls-privacy-pnh-governance-api/config
-      - ../rayls-sovereign-pnh-governance/.env:/parfin/rayls-privacy-pnh-governance-api/.env
-      - ../rayls-sovereign-pnh-governance/contracts:/parfin/rayls-privacy-pnh-governance-api/contracts
+      # ../rayls-sovereign-pnh-governance mounts live in docker-compose.governance.override.yml,
+      # applied only when governance is enabled (not with --no-governance).
       - ../rayls-sovereign-ops-api/contracts:/parfin/rayls-privacy-ops-api/contracts
       - .:/parfin/rayls-privacy-relayer-api
     depends_on:
