@@ -394,11 +394,10 @@ func (c *ProofAPIClient) CreateWithdrawProof(k int, req types.WithdrawProofReque
 		HashedSharedSecrets:       convertBigIntArrayToStringArray(req.ArrayHashSecrets),
 		MessageTags:               convertBigIntArrayToStringArray(req.MessageTags),
 		AnonymitySet:              convertBigIntArrayToStringArray(req.DestinationChainIDs),
-		Hashes:                    convertBigIntArrayToStringArray(req.DepositCommitments),
-		SkDeposits:                convertBigIntArrayToStringArray(req.DepositSecretKeys),
-		VPerDeposit:               convertBigIntArrayToStringArray(req.DepositAmounts),
+		PaymentCommitment:         req.PaymentCommitment.String(),
+		PaymentSecretKey:          req.PaymentSecretKey.String(),
+		PaymentSalt:               req.PaymentSalt.String(),
 		Address:                   req.TokenAddress.Big().String(),
-		SaltsIn:                   convertBigIntArrayToStringArray(req.DepositSalts),
 	}
 
 	reqURL := buildRequestURL(c.baseURL, endpoint, url.Values{})

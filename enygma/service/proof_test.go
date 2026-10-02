@@ -1081,9 +1081,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		tracer := &testutils.MockTracer{}
@@ -1122,9 +1122,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -1185,9 +1185,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -1232,9 +1232,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -1285,9 +1285,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -1345,9 +1345,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
+			PaymentCommitment:  big.NewInt(111),
+			PaymentSecretKey:   big.NewInt(222),
+			PaymentSalt:        big.NewInt(333),
 		}
 
 		sharedSecrets := []*big.Int{big.NewInt(1000)}
@@ -1412,9 +1412,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 		batch2 := createTestBatch(chainID1, chainID2, big.NewInt(0))
 		batches := []*types.EnygmaTransferBatch{batch1, batch2}
 
-		depositCommitments := []*big.Int{big.NewInt(111), big.NewInt(222)}
-		depositSecretKeys := []*big.Int{big.NewInt(333), big.NewInt(444)}
-		depositAmounts := []*big.Int{big.NewInt(555), big.NewInt(666)}
+		paymentCommitment := big.NewInt(111)
+		paymentSecretKey := big.NewInt(333)
+		paymentSalt := big.NewInt(555)
 
 		params := enygma.WithdrawProofParams{
 			ResourceId:         "test-resource",
@@ -1423,9 +1423,9 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			BlockNumber:        blockNumber,
 			Batches:            batches,
 			TokenAddress:       tokenAddress,
-			DepositCommitments: depositCommitments,
-			DepositSecretKeys:  depositSecretKeys,
-			DepositAmounts:     depositAmounts,
+			PaymentCommitment:  paymentCommitment,
+			PaymentSecretKey:   paymentSecretKey,
+			PaymentSalt:        paymentSalt,
 		}
 
 		expectedProof := types.EnygmaProofResponse{
@@ -1522,12 +1522,12 @@ func TestGenerateWithdrawProof(t *testing.T) {
 		// Verify withdraw-specific fields are included
 		assert.Equal(t, params.TokenAddress, capturedWithdrawProofRequest.TokenAddress,
 			"TokenAddress should be passed to the withdraw proof request")
-		assert.Equal(t, depositCommitments, capturedWithdrawProofRequest.DepositCommitments,
-			"DepositCommitments should be passed to the withdraw proof request")
-		assert.Equal(t, depositSecretKeys, capturedWithdrawProofRequest.DepositSecretKeys,
-			"DepositSecretKeys should be passed to the withdraw proof request")
-		assert.Equal(t, depositAmounts, capturedWithdrawProofRequest.DepositAmounts,
-			"DepositAmounts should be passed to the withdraw proof request")
+		assert.Equal(t, paymentCommitment, capturedWithdrawProofRequest.PaymentCommitment,
+			"PaymentCommitment should be passed to the withdraw proof request")
+		assert.Equal(t, paymentSecretKey, capturedWithdrawProofRequest.PaymentSecretKey,
+			"PaymentSecretKey should be passed to the withdraw proof request")
+		assert.Equal(t, paymentSalt, capturedWithdrawProofRequest.PaymentSalt,
+			"PaymentSalt should be passed to the withdraw proof request")
 
 		// Verify commitments are valid Point types
 		for i, commitment := range capturedWithdrawProofRequest.DestinationNewCommits {
