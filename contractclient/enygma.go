@@ -92,7 +92,7 @@ func (c *EnygmaClient) SupplyUpdate(
 
 	calldata := c.contract.PackUpdateSupply(senderChainId, blockNumber, supplyUpdate)
 
-	_, err := c.executor.Execute(ctx, IDFor("enygmaclient.SupplyUpdate", chainEventID), calldata, tokenAddress)
+	_, err := c.executor.Execute(ctx, IDFor("enygmaclient.SupplyUpdate", chainEventID, blockNumber.String()), calldata, tokenAddress)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, telemetry.STATUS_ERROR_FAILED_TO_SEND_SUPPLY_UPDATE)
@@ -133,7 +133,7 @@ func (c *EnygmaClient) TransferBatch(
 	calldata := c.contract.PackTransferBatch(contractProof, encrBatches)
 
 	_, transferBatchSpan := c.tracer.Start(ctx, telemetry.SPAN_TRANSFER_BATCH)
-	_, err = c.executor.Execute(ctx, IDFor("enygmaclient.TransferBatch", batchID), calldata, tokenAddress)
+	_, err = c.executor.Execute(ctx, IDFor("enygmaclient.TransferBatch", batchID, blockNumber.String()), calldata, tokenAddress)
 	transferBatchSpan.End()
 	if err != nil {
 		span.RecordError(err)
