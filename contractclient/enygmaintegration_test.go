@@ -147,6 +147,9 @@ func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 		assert.Equal(t, batches, encryptor.spyBatches)
 		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
 		assert.Equal(t, address, executor.spyExecuteAddress)
+		// The block number is part of the id so a retry at the next block sends a new tx
+		// instead of replaying CTS's stored verdict for the previous attempt.
+		assert.Equal(t, "dvpintegration.Deposit:test-event-id:100", executor.spyExecuteID)
 		assert.NotNil(t, executor.spyExecuteCalldata)
 	})
 
@@ -221,6 +224,9 @@ func TestDvpIntegrationClient_SignWithdraw(t *testing.T) {
 		assert.Equal(t, batches, encryptor.spyBatches)
 		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
 		assert.Equal(t, address, executor.spyExecuteAddress)
+		// The block number is part of the id so a retry at the next block sends a new tx
+		// instead of replaying CTS's stored verdict for the previous attempt.
+		assert.Equal(t, "dvpintegration.Withdraw:test-event-id:100", executor.spyExecuteID)
 		assert.NotNil(t, executor.spyExecuteCalldata)
 	})
 

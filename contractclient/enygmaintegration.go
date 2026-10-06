@@ -95,7 +95,7 @@ func (c *DvpIntegrationClient) Deposit(
 
 	calldata := c.contract.PackDepositToDvp(contractProof, encrBatches, encryptedBurnUpdate)
 
-	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Deposit", chainEventID), calldata, dvpIntegrationAddress)
+	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Deposit", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute deposit to dvp", withstack.Wrap(err))
 	}
@@ -183,7 +183,7 @@ func (c *DvpIntegrationClient) Withdraw(
 
 	calldata := c.contract.PackWithdrawFromDvp(contractProof, encrBatches, dvpProof, encryptedMintUpdate)
 
-	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Withdraw", chainEventID), calldata, dvpIntegrationAddress)
+	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Withdraw", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute withdraw from dvp", withstack.Wrap(err))
 	}
