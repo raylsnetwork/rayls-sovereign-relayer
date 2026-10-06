@@ -122,34 +122,56 @@ func createTestProofReceipt() *dvp.ProofReceipt {
 	}
 }
 
+func TestDvpIntegrationClient_ExecutesViaExecutor(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		call   func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error
+		wantID string
+	}{
+		{
+			name: "deposit",
+			call: func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error {
+				return c.Deposit(context.Background(), "test-event-id", batches, createTestProof(), blockNumber, big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
+			},
+			wantID: "dvpintegration.Deposit:test-event-id:100",
+		},
+		{
+			name: "withdraw",
+			call: func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error {
+				return c.Withdraw(context.Background(), "test-event-id", batches, createTestProof(), blockNumber, createTestProofReceipt(), big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
+			},
+			wantID: "dvpintegration.Withdraw:test-event-id:100",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			batches := createTestBatches()
+			blockNumber := big.NewInt(100)
+			address := common.HexToAddress("0x1")
+			executor := &stubExecutor{}
+			encryptor := &StubDvpIntegrationEncryptor{
+				encryptedBatches: [][]byte{{0xaa}, {0xbb}},
+			}
+			client := contractclient.NewDvpIntegrationClient(executor, encryptor, &StubZkdvpIntegrationEthClient{})
+
+			err := tc.call(client, batches, blockNumber, address)
+
+			require.NoError(t, err)
+			assert.Equal(t, batches, encryptor.spyBatches)
+			assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
+			assert.Equal(t, address, executor.spyExecuteAddress)
+			// The block number is part of the id so a retry at the next block sends a new tx
+			// instead of replaying CTS's stored verdict for the previous attempt.
+			assert.Equal(t, tc.wantID, executor.spyExecuteID)
+			assert.NotNil(t, executor.spyExecuteCalldata)
+		})
+	}
+}
+
 func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
-	t.Run("successfully signs deposit via executor", func(t *testing.T) {
-		batches := createTestBatches()
-		proof := createTestProof()
-		blockNumber := big.NewInt(100)
-
-		address := common.HexToAddress("0x1")
-		executor := &stubExecutor{}
-		encryptor := &StubDvpIntegrationEncryptor{
-			encryptedBatches: [][]byte{{0xaa}, {0xbb}},
-		}
-
-		client := contractclient.NewDvpIntegrationClient(
-			executor,
-			encryptor,
-			&StubZkdvpIntegrationEthClient{},
-		)
-
-		err := client.Deposit(context.Background(), "test-event-id", batches, proof, blockNumber, big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
-
-		require.Nil(t, err)
-
-		assert.Equal(t, batches, encryptor.spyBatches)
-		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
-		assert.Equal(t, address, executor.spyExecuteAddress)
-		assert.NotNil(t, executor.spyExecuteCalldata)
-	})
-
 	t.Run("wraps encryption errors in EnygmaDvpIntegrationClientError", func(t *testing.T) {
 		wantError := errors.New("encryption failed")
 
@@ -196,34 +218,6 @@ func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 }
 
 func TestDvpIntegrationClient_SignWithdraw(t *testing.T) {
-	t.Run("successfully signs withdraw via executor", func(t *testing.T) {
-		batches := createTestBatches()
-		proof := createTestProof()
-		blockNumber := big.NewInt(100)
-		jsProof := createTestProofReceipt()
-
-		address := common.HexToAddress("0x1")
-		executor := &stubExecutor{}
-		encryptor := &StubDvpIntegrationEncryptor{
-			encryptedBatches: [][]byte{{0xaa}, {0xbb}},
-		}
-
-		client := contractclient.NewDvpIntegrationClient(
-			executor,
-			encryptor,
-			&StubZkdvpIntegrationEthClient{},
-		)
-
-		err := client.Withdraw(context.Background(), "test-event-id", batches, proof, blockNumber, jsProof, big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
-
-		require.Nil(t, err)
-
-		assert.Equal(t, batches, encryptor.spyBatches)
-		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
-		assert.Equal(t, address, executor.spyExecuteAddress)
-		assert.NotNil(t, executor.spyExecuteCalldata)
-	})
-
 	t.Run("wraps encryption errors in EnygmaDvpIntegrationClientError", func(t *testing.T) {
 		wantError := errors.New("encryption failed")
 

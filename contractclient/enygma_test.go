@@ -90,6 +90,9 @@ func TestEnygmaClient_SignSupplyUpdate(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, address, executor.spyExecuteAddress)
+		// The block number is part of the id so a retry at the next block sends a new tx
+		// instead of replaying CTS's stored verdict for the previous attempt.
+		assert.Equal(t, "enygmaclient.SupplyUpdate:test-event-id:100", executor.spyExecuteID)
 		assert.NotNil(t, executor.spyExecuteCalldata)
 	})
 
@@ -158,6 +161,9 @@ func TestEnygmaClient_SignTransferBatch(t *testing.T) {
 		assert.Equal(t, wantBatches, encryptor.spyBatches)
 		assert.Equal(t, wantBlockNumber, encryptor.spyBlockNumber)
 		assert.Equal(t, address, executor.spyExecuteAddress)
+		// The block number is part of the id so a retry at the next block sends a new tx
+		// instead of replaying CTS's stored verdict for the previous attempt.
+		assert.Equal(t, "enygmaclient.TransferBatch:test-event-id:100", executor.spyExecuteID)
 		assert.NotNil(t, executor.spyExecuteCalldata)
 	})
 

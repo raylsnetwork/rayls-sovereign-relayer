@@ -124,7 +124,6 @@ func (r *SourcePrivateRelayer) initializeEnygmaServices(
 	enygmaExecutor := enygmaService.NewEnygmaExecutor(
 		enygmaService.ExecutorConfig{
 			DefaultContextTimeout: config.DefaultContextTimeout,
-			MaxNumberOfJSDeposits: config.NumberOfJSParamsIn,
 		},
 		enygmaAdapters.NewOTelTracer("enygma-executor"),
 		enygmaBatcher,

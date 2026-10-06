@@ -1058,347 +1058,159 @@ func TestGenerateDepositProof(t *testing.T) {
 	})
 }
 
+// withdrawProofTestDeps holds the proof service's collaborators for withdraw
+// proof tests, each wired to succeed; a test overrides only what it breaks.
+type withdrawProofTestDeps struct {
+	kosClient    *MockProofKOSClient
+	proofClient  *MockProofAPIClient
+	enygmaRepo   *MockProofEnygmaRepository
+	enygmaClient *testEnygmaClient
+}
+
+func newWithdrawProofTestDeps(chainID *big.Int) *withdrawProofTestDeps {
+	sharedSecrets := bigIntsToBytes([]*big.Int{big.NewInt(1000)})
+	return &withdrawProofTestDeps{
+		kosClient: &MockProofKOSClient{
+			GetPaymentSpendKeyFunc: func(context.Context, *keys.GetPaymentSpendKeyRequest, ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
+				return createTestPaymentSpendKey(), nil
+			},
+			GenerateEnygmaSharedSecretsFunc: func(context.Context, *keys.GenerateEnygmaSharedSecretsRequest, ...grpc.CallOption) (*keys.GenerateEnygmaSharedSecretsResponse, error) {
+				return &keys.GenerateEnygmaSharedSecretsResponse{Secrets: sharedSecrets, HashSecrets: sharedSecrets, MessageTags: sharedSecrets}, nil
+			},
+		},
+		proofClient: &MockProofAPIClient{
+			CreateWithdrawProofFunc: func(int, types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
+				return types.EnygmaProofResponse{}, nil
+			},
+		},
+		enygmaRepo: &MockProofEnygmaRepository{
+			GetEnygmaByResourceIdFunc: func(context.Context, string) (types.Enygma, error) {
+				return createTestEnygmaState(), nil
+			},
+		},
+		enygmaClient: &testEnygmaClient{
+			GetPublicValuesFinalizedFunc: func(context.Context, common.Address) (*types.EnygmaPublicValues, error) {
+				return createTestEnygmaPublicValues([]*big.Int{chainID}), nil
+			},
+		},
+	}
+}
+
+func TestGenerateWithdrawProof_Errors(t *testing.T) {
+	t.Parallel()
+
+	chainID1 := big.NewInt(1)
+	chainID2 := big.NewInt(2)
+	singleChainBatches := []*types.EnygmaTransferBatch{createTestBatch(chainID1, chainID1, big.NewInt(100))}
+
+	tests := []struct {
+		name           string
+		anonymityIndex int
+		batches        []*types.EnygmaTransferBatch
+		breakDeps      func(d *withdrawProofTestDeps)
+		wantErr        string
+	}{
+		{
+			name:           "unique chainIDs exceed anonymity index",
+			anonymityIndex: 1,
+			batches: []*types.EnygmaTransferBatch{
+				createTestBatch(chainID1, chainID1, big.NewInt(100)),
+				createTestBatch(chainID1, chainID2, big.NewInt(200)),
+			},
+			breakDeps: func(*withdrawProofTestDeps) {},
+			wantErr:   "Only transactions from 1->1 up to 1->k-1 are supported",
+		},
+		{
+			name:           "kosClient.GenerateEnygmaSharedSecrets fails",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps: func(d *withdrawProofTestDeps) {
+				d.kosClient.GenerateEnygmaSharedSecretsFunc = func(context.Context, *keys.GenerateEnygmaSharedSecretsRequest, ...grpc.CallOption) (*keys.GenerateEnygmaSharedSecretsResponse, error) {
+					return nil, fmt.Errorf("kos shared secrets error")
+				}
+			},
+			wantErr: "kos shared secrets error",
+		},
+		{
+			name:           "kosClient.GetPaymentSpendKey fails",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps: func(d *withdrawProofTestDeps) {
+				d.kosClient.GetPaymentSpendKeyFunc = func(context.Context, *keys.GetPaymentSpendKeyRequest, ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
+					return nil, fmt.Errorf("kos client error")
+				}
+			},
+			wantErr: "kos client error",
+		},
+		{
+			name:           "enygmaRepository.GetEnygmaByResourceId fails",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps: func(d *withdrawProofTestDeps) {
+				d.enygmaRepo.GetEnygmaByResourceIdFunc = func(context.Context, string) (types.Enygma, error) {
+					return types.Enygma{}, fmt.Errorf("repository error")
+				}
+			},
+			wantErr: "repository error",
+		},
+		{
+			name:           "enygmaClient.GetPublicValuesFinalised fails",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps: func(d *withdrawProofTestDeps) {
+				d.enygmaClient.GetPublicValuesFinalizedFunc = func(context.Context, common.Address) (*types.EnygmaPublicValues, error) {
+					return nil, fmt.Errorf("client error")
+				}
+			},
+			wantErr: "client error",
+		},
+		{
+			name:           "proofClient.CreateWithdrawProof fails",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps: func(d *withdrawProofTestDeps) {
+				d.proofClient.CreateWithdrawProofFunc = func(int, types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
+					return types.EnygmaProofResponse{}, fmt.Errorf("proof client error")
+				}
+			},
+			wantErr: "proof client error",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			deps := newWithdrawProofTestDeps(chainID1)
+			tc.breakDeps(deps)
+			proofService := service.NewEnygmaProofService(
+				chainID1,
+				deps.kosClient,
+				deps.proofClient,
+				deps.enygmaRepo,
+				deps.enygmaClient,
+				&testutils.MockTracer{},
+			)
+			params := enygma.WithdrawProofParams{
+				ResourceId:        "test-resource",
+				AnonymityIndex:    tc.anonymityIndex,
+				SenderAmount:      big.NewInt(1000),
+				BlockNumber:       big.NewInt(12345),
+				Batches:           tc.batches,
+				PaymentCommitment: big.NewInt(111),
+				PaymentSecretKey:  big.NewInt(222),
+				PaymentSalt:       big.NewInt(333),
+			}
+
+			proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
+
+			assert.ErrorContains(t, err, tc.wantErr)
+			assert.Nil(t, proof)
+			assert.Nil(t, commitments)
+			assert.Nil(t, randomFactors)
+		})
+	}
+}
+
 func TestGenerateWithdrawProof(t *testing.T) {
-	t.Run("returns error if anonymity index is invalid - unique chainIDs exceed anonymity index", func(t *testing.T) {
-		// Setup
-		anonymityIndex := 1
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		// Create batches with 2 unique destination chains (exceeds anonymity index of 1)
-		chainID1 := big.NewInt(1)
-		chainID2 := big.NewInt(2)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-			createTestBatch(chainID1, chainID2, big.NewInt(200)),
-		}
-
-		// Create minimal params
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			&MockProofKOSClient{},
-			&MockProofAPIClient{},
-			&MockProofEnygmaRepository{},
-			&testEnygmaClient{},
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "Only transactions from 1->1 up to 1->k-1 are supported")
-	})
-
-	t.Run("returns error if kosClient.GenerateEnygmaSharedSecrets fails", func(t *testing.T) {
-		anonymityIndex := 2
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		chainID1 := big.NewInt(1)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-		}
-
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		kosClient := &MockProofKOSClient{
-			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
-				return createTestPaymentSpendKey(), nil
-			},
-			GenerateEnygmaSharedSecretsFunc: func(ctx context.Context, in *keys.GenerateEnygmaSharedSecretsRequest, opts ...grpc.CallOption) (*keys.GenerateEnygmaSharedSecretsResponse, error) {
-				return nil, fmt.Errorf("kos shared secrets error")
-			},
-		}
-
-		enygmaClient := &testEnygmaClient{
-			GetPublicValuesFinalizedFunc: func(ctx context.Context, _ common.Address) (*types.EnygmaPublicValues, error) {
-				return createTestEnygmaPublicValues([]*big.Int{chainID1}), nil
-			},
-		}
-
-
-		enygmaRepo := &MockProofEnygmaRepository{
-			GetEnygmaByResourceIdFunc: func(ctx context.Context, resourceId string) (types.Enygma, error) {
-				return createTestEnygmaState(), nil
-			},
-		}
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			kosClient,
-			&MockProofAPIClient{},
-			enygmaRepo,
-			enygmaClient,
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "kos shared secrets error")
-	})
-
-	t.Run("returns error if kosClient.GetEnygmaKey fails", func(t *testing.T) {
-		anonymityIndex := 2
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		chainID1 := big.NewInt(1)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-		}
-
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		kosClient := &MockProofKOSClient{
-			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
-				return nil, fmt.Errorf("kos client error")
-			},
-		}
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			kosClient,
-			&MockProofAPIClient{},
-			&MockProofEnygmaRepository{},
-			&testEnygmaClient{},
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "kos client error")
-	})
-
-	t.Run("returns error if enygmaRepository.GetEnygmaByResourceId fails", func(t *testing.T) {
-		anonymityIndex := 2
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		chainID1 := big.NewInt(1)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-		}
-
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		kosClient := &MockProofKOSClient{
-			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
-				return createTestPaymentSpendKey(), nil
-			},
-		}
-
-		enygmaRepo := &MockProofEnygmaRepository{
-			GetEnygmaByResourceIdFunc: func(ctx context.Context, resourceId string) (types.Enygma, error) {
-				return types.Enygma{}, fmt.Errorf("repository error")
-			},
-		}
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			kosClient,
-			&MockProofAPIClient{},
-			enygmaRepo,
-			&testEnygmaClient{},
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "repository error")
-	})
-
-	t.Run("returns error if enygmaClient.GetPublicValuesFinalised fails", func(t *testing.T) {
-		anonymityIndex := 2
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		chainID1 := big.NewInt(1)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-		}
-
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		kosClient := &MockProofKOSClient{
-			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
-				return createTestPaymentSpendKey(), nil
-			},
-		}
-
-		enygmaRepo := &MockProofEnygmaRepository{
-			GetEnygmaByResourceIdFunc: func(ctx context.Context, resourceId string) (types.Enygma, error) {
-				return createTestEnygmaState(), nil
-			},
-		}
-
-		enygmaClient := &testEnygmaClient{
-			GetPublicValuesFinalizedFunc: func(ctx context.Context, _ common.Address) (*types.EnygmaPublicValues, error) {
-				return nil, fmt.Errorf("client error")
-			},
-		}
-
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			kosClient,
-			&MockProofAPIClient{},
-			enygmaRepo,
-			enygmaClient,
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "client error")
-	})
-
-	t.Run("returns error if proofClient.CreateWithdrawProof fails", func(t *testing.T) {
-		anonymityIndex := 2
-		senderAmount := big.NewInt(1000)
-		blockNumber := big.NewInt(12345)
-
-		chainID1 := big.NewInt(1)
-		batches := []*types.EnygmaTransferBatch{
-			createTestBatch(chainID1, chainID1, big.NewInt(100)),
-		}
-
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			DepositCommitments: []*big.Int{big.NewInt(111)},
-			DepositSecretKeys:  []*big.Int{big.NewInt(222)},
-			DepositAmounts:     []*big.Int{big.NewInt(333)},
-		}
-
-		sharedSecrets := []*big.Int{big.NewInt(1000)}
-
-		kosClient := &MockProofKOSClient{
-			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
-				return createTestPaymentSpendKey(), nil
-			},
-			GenerateEnygmaSharedSecretsFunc: func(ctx context.Context, in *keys.GenerateEnygmaSharedSecretsRequest, opts ...grpc.CallOption) (*keys.GenerateEnygmaSharedSecretsResponse, error) {
-				return &keys.GenerateEnygmaSharedSecretsResponse{Secrets: bigIntsToBytes(sharedSecrets), HashSecrets: bigIntsToBytes(sharedSecrets), MessageTags: bigIntsToBytes(sharedSecrets)}, nil
-			},
-		}
-
-		enygmaRepo := &MockProofEnygmaRepository{
-			GetEnygmaByResourceIdFunc: func(ctx context.Context, resourceId string) (types.Enygma, error) {
-				return createTestEnygmaState(), nil
-			},
-		}
-
-		enygmaClient := &testEnygmaClient{
-			GetPublicValuesFinalizedFunc: func(ctx context.Context, _ common.Address) (*types.EnygmaPublicValues, error) {
-				return createTestEnygmaPublicValues([]*big.Int{chainID1}), nil
-			},
-		}
-
-
-		proofClient := &MockProofAPIClient{
-			CreateWithdrawProofFunc: func(anonymityIndex int, request types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
-				return types.EnygmaProofResponse{}, fmt.Errorf("proof client error")
-			},
-		}
-
-		tracer := &testutils.MockTracer{}
-		proofService := service.NewEnygmaProofService(
-			chainID1,
-			kosClient,
-			proofClient,
-			enygmaRepo,
-			enygmaClient,
-			tracer,
-		)
-
-		proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
-
-		assert.Error(t, err)
-		assert.Nil(t, proof)
-		assert.Nil(t, commitments)
-		assert.Nil(t, randomFactors)
-		assert.ErrorContains(t, err, "proof client error")
-	})
-
 	t.Run("successfully generates a withdraw proof", func(t *testing.T) {
 		chainID1 := big.NewInt(1)
 		chainID2 := big.NewInt(2)
@@ -1412,20 +1224,20 @@ func TestGenerateWithdrawProof(t *testing.T) {
 		batch2 := createTestBatch(chainID1, chainID2, big.NewInt(0))
 		batches := []*types.EnygmaTransferBatch{batch1, batch2}
 
-		depositCommitments := []*big.Int{big.NewInt(111), big.NewInt(222)}
-		depositSecretKeys := []*big.Int{big.NewInt(333), big.NewInt(444)}
-		depositAmounts := []*big.Int{big.NewInt(555), big.NewInt(666)}
+		paymentCommitment := big.NewInt(111)
+		paymentSecretKey := big.NewInt(333)
+		paymentSalt := big.NewInt(555)
 
 		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       tokenAddress,
-			DepositCommitments: depositCommitments,
-			DepositSecretKeys:  depositSecretKeys,
-			DepositAmounts:     depositAmounts,
+			ResourceId:        "test-resource",
+			AnonymityIndex:    anonymityIndex,
+			SenderAmount:      senderAmount,
+			BlockNumber:       blockNumber,
+			Batches:           batches,
+			TokenAddress:      tokenAddress,
+			PaymentCommitment: paymentCommitment,
+			PaymentSecretKey:  paymentSecretKey,
+			PaymentSalt:       paymentSalt,
 		}
 
 		expectedProof := types.EnygmaProofResponse{
@@ -1522,12 +1334,12 @@ func TestGenerateWithdrawProof(t *testing.T) {
 		// Verify withdraw-specific fields are included
 		assert.Equal(t, params.TokenAddress, capturedWithdrawProofRequest.TokenAddress,
 			"TokenAddress should be passed to the withdraw proof request")
-		assert.Equal(t, depositCommitments, capturedWithdrawProofRequest.DepositCommitments,
-			"DepositCommitments should be passed to the withdraw proof request")
-		assert.Equal(t, depositSecretKeys, capturedWithdrawProofRequest.DepositSecretKeys,
-			"DepositSecretKeys should be passed to the withdraw proof request")
-		assert.Equal(t, depositAmounts, capturedWithdrawProofRequest.DepositAmounts,
-			"DepositAmounts should be passed to the withdraw proof request")
+		assert.Equal(t, paymentCommitment, capturedWithdrawProofRequest.PaymentCommitment,
+			"PaymentCommitment should be passed to the withdraw proof request")
+		assert.Equal(t, paymentSecretKey, capturedWithdrawProofRequest.PaymentSecretKey,
+			"PaymentSecretKey should be passed to the withdraw proof request")
+		assert.Equal(t, paymentSalt, capturedWithdrawProofRequest.PaymentSalt,
+			"PaymentSalt should be passed to the withdraw proof request")
 
 		// Verify commitments are valid Point types
 		for i, commitment := range capturedWithdrawProofRequest.DestinationNewCommits {

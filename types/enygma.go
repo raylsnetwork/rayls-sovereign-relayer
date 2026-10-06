@@ -143,13 +143,15 @@ type DepositProofRequest struct {
 	DepositPublicKey  *big.Int
 }
 
+// WithdrawProofRequest carries the DvP join-split payment output the withdraw
+// proof opens: PaymentCommitment must equal the receipt's commitments[0], and
+// the proof shows it commits to SenderAmount under PaymentSecretKey's public key.
 type WithdrawProofRequest struct {
 	*CommonProofRequest
-	TokenAddress       common.Address
-	DepositCommitments []*big.Int
-	DepositSecretKeys  []*big.Int
-	DepositAmounts     []*big.Int
-	DepositSalts       []*big.Int
+	TokenAddress      common.Address
+	PaymentCommitment *big.Int
+	PaymentSecretKey  *big.Int
+	PaymentSalt       *big.Int
 }
 type ResponseEnygmaProofAPI struct {
 	Pi_A          []string   `json:"pi_a"`
