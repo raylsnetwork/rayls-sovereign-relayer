@@ -1283,6 +1283,16 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 	})
 }
 
+// executorTestPaymentCommitmentCalculator returns a calculator whose payment
+// commitment matches executorTestWithdrawalRequest's join-split payment output.
+func executorTestPaymentCommitmentCalculator() *executorCommitmentCalculatorMock {
+	return &executorCommitmentCalculatorMock{
+		CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
+			return big.NewInt(250), nil
+		},
+	}
+}
+
 // executorTestWithdrawalRequest returns a withdrawal whose join-split payment
 // output (commitments[0]) is 250, the commitment the calculator mocks return.
 func executorTestWithdrawalRequest() service.EnygmaWithdrawalRequest {
@@ -1374,11 +1384,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 				return nil
 			},
 		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1510,11 +1516,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		keysClient := successKeysClient()
 		enygmaClient := &executorEnygmaClientMock{}
 		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1563,11 +1565,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		keysClient := successKeysClient()
 		enygmaClient := &executorEnygmaClientMock{}
 		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1620,11 +1618,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1694,11 +1688,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 				return errors.New("withdrawal failed")
 			},
 		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1773,11 +1763,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 				return nil
 			},
 		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+		commitmentCalc := executorTestPaymentCommitmentCalculator()
 
 		executor := service.NewEnygmaExecutor(
 			conf,
@@ -1837,11 +1823,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 				successKeysClient(),
 				&executorEnygmaClientMock{},
 				&ExecutorDvpIntegrationClientMock{},
-				&executorCommitmentCalculatorMock{
-					CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-						return big.NewInt(250), nil
-					},
-				},
+				executorTestPaymentCommitmentCalculator(),
 				executorTestPnChainId(),
 			)
 

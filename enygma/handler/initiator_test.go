@@ -98,8 +98,12 @@ func setupInitiatorDeps() *initiatorDeps {
 				return ctx, noopSpan
 			},
 		},
-		RetryService:    &initiatorRetryServiceMock{},
-		Executor:        &initiatorEnygmaExecutorMock{},
+		RetryService: &initiatorRetryServiceMock{},
+		Executor: &initiatorEnygmaExecutorMock{
+			ExecuteEnygmaWithdrawalFunc: func(context.Context, service.EnygmaWithdrawalRequest) error {
+				return nil
+			},
+		},
 		Finalization:    &initiatorEnygmaFinalizationServiceMock{},
 		CreationService: &initiatorEnygmaCreationServiceMock{},
 		TxManager: &initiatorTxManagerMock{
@@ -722,9 +726,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
 		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
-		}
 		deps.EnygmaHandlerClient.ReceiveWithdrawFunc = func(ctx context.Context, _ string, tokenAddress common.Address, toAddr common.Address, value *big.Int, referenceId [32]byte) error {
 			assert.Equal(t, amount, value)
 			assert.Equal(t, to, toAddr)
@@ -1212,9 +1213,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
 		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
-		}
 		deps.PLEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
 			return common.Address{}, errors.New("PL endpoint error")
 		}
@@ -1275,9 +1273,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.RetryService.RetryOperationFunc = func(ctx context.Context, operationName string, maxRetries int, blockNumber uint64, executeOperation func(ctx context.Context, nextBlockNumber uint64) error) (uint64, error) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
-		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
 		}
 		deps.PLEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
 			return common.HexToAddress("0x9999999999999999999999999999999999999999"), nil
@@ -1344,9 +1339,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.RetryService.RetryOperationFunc = func(ctx context.Context, operationName string, maxRetries int, blockNumber uint64, executeOperation func(ctx context.Context, nextBlockNumber uint64) error) (uint64, error) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
-		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
 		}
 		deps.PLEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
 			return common.HexToAddress("0x9999999999999999999999999999999999999999"), nil
@@ -1434,9 +1426,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
 		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
-		}
 		deps.PLEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
 			return common.HexToAddress("0x9999999999999999999999999999999999999999"), nil
 		}
@@ -1520,9 +1509,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.RetryService.RetryOperationFunc = func(ctx context.Context, operationName string, maxRetries int, blockNumber uint64, executeOperation func(ctx context.Context, nextBlockNumber uint64) error) (uint64, error) {
 			err := executeOperation(ctx, blockNumber)
 			return blockNumber, err
-		}
-		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(context.Context, service.EnygmaWithdrawalRequest) error {
-			return nil
 		}
 		deps.PLEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
 			return common.HexToAddress("0x9999999999999999999999999999999999999999"), nil
