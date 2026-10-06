@@ -1058,6 +1058,27 @@ func TestGenerateDepositProof(t *testing.T) {
 	})
 }
 
+// testWithdrawProofParams returns withdraw proof params with fixed payment
+// output values for tests that only vary the batching inputs.
+func testWithdrawProofParams(
+	anonymityIndex int,
+	senderAmount *big.Int,
+	blockNumber *big.Int,
+	batches []*types.EnygmaTransferBatch,
+) enygma.WithdrawProofParams {
+	return enygma.WithdrawProofParams{
+		ResourceId:        "test-resource",
+		AnonymityIndex:    anonymityIndex,
+		SenderAmount:      senderAmount,
+		BlockNumber:       blockNumber,
+		Batches:           batches,
+		TokenAddress:      common.Address{},
+		PaymentCommitment: big.NewInt(111),
+		PaymentSecretKey:  big.NewInt(222),
+		PaymentSalt:       big.NewInt(333),
+	}
+}
+
 func TestGenerateWithdrawProof(t *testing.T) {
 	t.Run("returns error if anonymity index is invalid - unique chainIDs exceed anonymity index", func(t *testing.T) {
 		// Setup
@@ -1074,17 +1095,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 		}
 
 		// Create minimal params
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		tracer := &testutils.MockTracer{}
 		proofService := service.NewEnygmaProofService(
@@ -1115,17 +1126,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			createTestBatch(chainID1, chainID1, big.NewInt(100)),
 		}
 
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		kosClient := &MockProofKOSClient{
 			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
@@ -1178,17 +1179,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			createTestBatch(chainID1, chainID1, big.NewInt(100)),
 		}
 
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		kosClient := &MockProofKOSClient{
 			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
@@ -1225,17 +1216,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			createTestBatch(chainID1, chainID1, big.NewInt(100)),
 		}
 
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		kosClient := &MockProofKOSClient{
 			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
@@ -1278,17 +1259,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			createTestBatch(chainID1, chainID1, big.NewInt(100)),
 		}
 
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		kosClient := &MockProofKOSClient{
 			GetPaymentSpendKeyFunc: func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
@@ -1338,17 +1309,7 @@ func TestGenerateWithdrawProof(t *testing.T) {
 			createTestBatch(chainID1, chainID1, big.NewInt(100)),
 		}
 
-		params := enygma.WithdrawProofParams{
-			ResourceId:         "test-resource",
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       senderAmount,
-			BlockNumber:        blockNumber,
-			Batches:            batches,
-			TokenAddress:       common.Address{},
-			PaymentCommitment:  big.NewInt(111),
-			PaymentSecretKey:   big.NewInt(222),
-			PaymentSalt:        big.NewInt(333),
-		}
+		params := testWithdrawProofParams(anonymityIndex, senderAmount, blockNumber, batches)
 
 		sharedSecrets := []*big.Int{big.NewInt(1000)}
 
