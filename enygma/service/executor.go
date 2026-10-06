@@ -412,18 +412,32 @@ func (e *EnygmaExecutor) ExecuteEnygmaDeposit(
 	return nil
 }
 
-func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
-	ctx context.Context,
-	chainEventID string,
-	resourceId string,
-	amount *big.Int,
-	paymentSalt *big.Int,
-	blockNumber uint64,
-	enygmaAddress common.Address,
-	jsProof *dvp.ProofReceipt,
-	from common.Address,
-	txHash common.Hash,
-) error {
+// EnygmaWithdrawalRequest holds the inputs for an Enygma withdrawal from DvP.
+type EnygmaWithdrawalRequest struct {
+	ChainEventID  string
+	ResourceId    string
+	Amount        *big.Int
+	PaymentSalt   *big.Int
+	BlockNumber   uint64
+	EnygmaAddress common.Address
+	JSProof       *dvp.ProofReceipt
+	From          common.Address
+	TxHash        common.Hash
+}
+
+// ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
+// back into the Enygma balance, binding the proof to the join-split payment output.
+func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req EnygmaWithdrawalRequest) error {
+	chainEventID := req.ChainEventID
+	resourceId := req.ResourceId
+	amount := req.Amount
+	paymentSalt := req.PaymentSalt
+	blockNumber := req.BlockNumber
+	enygmaAddress := req.EnygmaAddress
+	jsProof := req.JSProof
+	from := req.From
+	txHash := req.TxHash
+
 	blockNumberPrivateHub := new(big.Int).SetUint64(blockNumber)
 
 	spendKeyResp, err := e.keysClient.GetPaymentSpendKey(ctx, &keyspb.GetPaymentSpendKeyRequest{})

@@ -485,10 +485,10 @@ PARTICIPANT_LIST=${PARTICIPANT_LIST%,}
 # contracts deploy, so --no-governance needs neither that repo nor its .env.
 COMPOSE_FILE="docker-compose.dev-local.yml"
 COMPOSE_OVERRIDE_ARGS=""
-if [ "$HUB_ENABLED" != "true" ]; then
+if [[ "$HUB_ENABLED" != "true" ]]; then
     COMPOSE_OVERRIDE_ARGS+=" -f docker-compose.no-hub.override.yml"
 fi
-if [ "$GOVERNANCE_ENABLED" = "true" ]; then
+if [[ "$GOVERNANCE_ENABLED" = "true" ]]; then
     COMPOSE_OVERRIDE_ARGS+=" -f docker-compose.governance.override.yml"
 fi
 
