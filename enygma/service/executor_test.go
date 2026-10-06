@@ -1283,6 +1283,22 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 	})
 }
 
+// executorTestWithdrawalRequest returns a withdrawal whose join-split payment
+// output (commitments[0]) is 250, the commitment the calculator mocks return.
+func executorTestWithdrawalRequest() service.EnygmaWithdrawalRequest {
+	return service.EnygmaWithdrawalRequest{
+		ChainEventID:  "test-batch-id",
+		ResourceId:    executorTestResourceId(),
+		Amount:        executorTestAmount(),
+		PaymentSalt:   big.NewInt(1),
+		BlockNumber:   executorTestBlockNumber(),
+		EnygmaAddress: executorTestEnygmaAddress(),
+		JSProof:       &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
+		From:          executorTestFromAddress(),
+		TxHash:        executorTestTxHash(),
+	}
+}
+
 func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("successfully executes withdrawal", func(t *testing.T) {
 		ctx := context.Background()
@@ -1291,16 +1307,10 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 		blockNumber := executorTestBlockNumber()
 		enygmaAddress := executorTestEnygmaAddress()
 		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
 		toChainId := big.NewInt(2)
 		senderRFactor := big.NewInt(456)
 		integrationAddress := common.HexToAddress("0xintegration5678")
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1322,7 +1332,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 				params enygma.WithdrawProofParams,
 			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
 				assert.Equal(t, big.NewInt(250), params.PaymentCommitment)
-				assert.Equal(t, paymentSalt, params.PaymentSalt)
+				assert.Equal(t, big.NewInt(1), params.PaymentSalt)
 				assert.NotNil(t, params.PaymentSecretKey)
 				assert.Equal(t, 2, len(params.Batches))
 				assert.Equal(t, resourceId, params.ResourceId)
@@ -1383,17 +1393,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.NoError(t, err)
 		assert.Len(t, batcher.CreateBatchesWithAnonimityCalls(), 1)
@@ -1414,17 +1414,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when keys client fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{}
@@ -1456,17 +1446,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get key pair")
@@ -1475,17 +1455,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when commitment calculation fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{}
@@ -1513,17 +1483,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "commitment calculation failed")
@@ -1532,17 +1492,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when batcher fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1579,17 +1529,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "batching failed")
@@ -1598,17 +1538,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when proof generation fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1652,17 +1582,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "proof generation failed")
@@ -1671,16 +1591,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when getting integration address fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1728,17 +1639,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get integration address")
@@ -1747,17 +1648,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when Withdraw fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1822,17 +1713,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "withdrawal failed")
@@ -1842,17 +1723,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	t.Run("returns error when repository insertion fails", func(t *testing.T) {
 		ctx := context.Background()
 		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
 		plChainId := executorTestPnChainId()
-
-		paymentSalt := big.NewInt(1)
-
-		jsProof := &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}}
 
 		tracer := &testutils.MockTracer{}
 		batcher := &executorEnygmaBatcherMock{
@@ -1921,17 +1792,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-			ChainEventID:  "test-batch-id",
-			ResourceId:    resourceId,
-			Amount:        amount,
-			PaymentSalt:   paymentSalt,
-			BlockNumber:   blockNumber,
-			EnygmaAddress: enygmaAddress,
-			JSProof:       jsProof,
-			From:          fromAddress,
-			TxHash:        txHash,
-		})
+		err := executor.ExecuteEnygmaWithdrawal(ctx, executorTestWithdrawalRequest())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
@@ -1984,17 +1845,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 				executorTestPnChainId(),
 			)
 
-			err := executor.ExecuteEnygmaWithdrawal(context.Background(), service.EnygmaWithdrawalRequest{
-				ChainEventID:  "test-batch-id",
-				ResourceId:    executorTestResourceId(),
-				Amount:        executorTestAmount(),
-				PaymentSalt:   big.NewInt(1),
-				BlockNumber:   executorTestBlockNumber(),
-				EnygmaAddress: executorTestEnygmaAddress(),
-				JSProof:       tc.receipt,
-				From:          executorTestFromAddress(),
-				TxHash:        executorTestTxHash(),
-			})
+			req := executorTestWithdrawalRequest()
+			req.JSProof = tc.receipt
+			err := executor.ExecuteEnygmaWithdrawal(context.Background(), req)
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.wantErr)
