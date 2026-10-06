@@ -124,7 +124,7 @@ type initiatorEnygmaExecutor interface {
 	ExecuteEnygmaSupplyUpdate(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error
 	ExecuteEnygmaCrossTransfer(ctx context.Context, batchID string, blockNumber uint64, resourceId string, batch map[string][]*types.EnygmaTransferBatchTx, enygmaAddress common.Address) error
 	ExecuteEnygmaDeposit(ctx context.Context, id string, resourceId string, amount *big.Int, blockNumber uint64, commitment *big.Int, salt *big.Int, from common.Address, txHash common.Hash, enygmaAddress common.Address) error
-	ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, paymentSalt *big.Int, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
+	ExecuteEnygmaWithdrawal(ctx context.Context, req service.EnygmaWithdrawalRequest) error
 }
 
 type initiatorEnygmaFinalizationService interface {
@@ -567,18 +567,17 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		maxRetries,
 		blockNumber,
 		func(ctx context.Context, nextBlockNumber uint64) error {
-			return s.executor.ExecuteEnygmaWithdrawal(
-				ctx,
-				chainEventID,
-				resourceId,
-				amount,
-				destSalt,
-				nextBlockNumber,
-				enygmaAddress,
-				jsProof,
-				to,
-				txHash,
-			)
+			return s.executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+				ChainEventID:  chainEventID,
+				ResourceId:    resourceId,
+				Amount:        amount,
+				PaymentSalt:   destSalt,
+				BlockNumber:   nextBlockNumber,
+				EnygmaAddress: enygmaAddress,
+				JSProof:       jsProof,
+				From:          to,
+				TxHash:        txHash,
+			})
 		},
 	)
 	if err != nil {

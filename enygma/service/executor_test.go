@@ -1383,18 +1383,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.NoError(t, err)
 		assert.Len(t, batcher.CreateBatchesWithAnonimityCalls(), 1)
@@ -1457,18 +1456,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get key pair")
@@ -1515,18 +1513,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "commitment calculation failed")
@@ -1582,18 +1579,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "batching failed")
@@ -1656,18 +1652,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "proof generation failed")
@@ -1733,18 +1728,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get integration address")
@@ -1828,18 +1822,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "withdrawal failed")
@@ -1928,18 +1921,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 			plChainId,
 		)
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			paymentSalt,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+		err := executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+			ChainEventID:  "test-batch-id",
+			ResourceId:    resourceId,
+			Amount:        amount,
+			PaymentSalt:   paymentSalt,
+			BlockNumber:   blockNumber,
+			EnygmaAddress: enygmaAddress,
+			JSProof:       jsProof,
+			From:          fromAddress,
+			TxHash:        txHash,
+		})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
@@ -1992,18 +1984,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 				executorTestPnChainId(),
 			)
 
-			err := executor.ExecuteEnygmaWithdrawal(
-				context.Background(),
-				"test-batch-id",
-				executorTestResourceId(),
-				executorTestAmount(),
-				big.NewInt(1),
-				executorTestBlockNumber(),
-				executorTestEnygmaAddress(),
-				tc.receipt,
-				executorTestFromAddress(),
-				executorTestTxHash(),
-			)
+			err := executor.ExecuteEnygmaWithdrawal(context.Background(), service.EnygmaWithdrawalRequest{
+				ChainEventID:  "test-batch-id",
+				ResourceId:    executorTestResourceId(),
+				Amount:        executorTestAmount(),
+				PaymentSalt:   big.NewInt(1),
+				BlockNumber:   executorTestBlockNumber(),
+				EnygmaAddress: executorTestEnygmaAddress(),
+				JSProof:       tc.receipt,
+				From:          executorTestFromAddress(),
+				TxHash:        executorTestTxHash(),
+			})
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.wantErr)
