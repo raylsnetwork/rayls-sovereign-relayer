@@ -92,6 +92,8 @@ func (c *EnygmaClient) SupplyUpdate(
 
 	calldata := c.contract.PackUpdateSupply(senderChainId, blockNumber, supplyUpdate)
 
+	// Keyed on the block number too: the caller's RetryOperation bumps it on
+	// each attempt, so a retry is a fresh CTS call, not a replayed verdict.
 	_, err := c.executor.Execute(ctx, IDFor("enygmaclient.SupplyUpdate", chainEventID, blockNumber.String()), calldata, tokenAddress)
 	if err != nil {
 		span.RecordError(err)
@@ -132,6 +134,8 @@ func (c *EnygmaClient) TransferBatch(
 
 	calldata := c.contract.PackTransferBatch(contractProof, encrBatches)
 
+	// Keyed on the block number too: the caller's RetryOperation bumps it on
+	// each attempt, so a retry is a fresh CTS call, not a replayed verdict.
 	_, transferBatchSpan := c.tracer.Start(ctx, telemetry.SPAN_TRANSFER_BATCH)
 	_, err = c.executor.Execute(ctx, IDFor("enygmaclient.TransferBatch", batchID, blockNumber.String()), calldata, tokenAddress)
 	transferBatchSpan.End()

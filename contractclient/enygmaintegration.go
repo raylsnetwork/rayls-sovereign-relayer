@@ -95,6 +95,8 @@ func (c *DvpIntegrationClient) Deposit(
 
 	calldata := c.contract.PackDepositToDvp(contractProof, encrBatches, encryptedBurnUpdate)
 
+	// Keyed on the block number too: the caller's RetryOperation bumps it on
+	// each attempt, so a retry is a fresh CTS call, not a replayed verdict.
 	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Deposit", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute deposit to dvp", withstack.Wrap(err))
@@ -183,6 +185,8 @@ func (c *DvpIntegrationClient) Withdraw(
 
 	calldata := c.contract.PackWithdrawFromDvp(contractProof, encrBatches, dvpProof, encryptedMintUpdate)
 
+	// Keyed on the block number too: the caller's RetryOperation bumps it on
+	// each attempt, so a retry is a fresh CTS call, not a replayed verdict.
 	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Withdraw", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute withdraw from dvp", withstack.Wrap(err))
