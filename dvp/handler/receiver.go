@@ -147,16 +147,7 @@ type receiverCommitmentCalculator interface {
 }
 
 type receiverProofGenerator interface {
-	GenerateEnygmaJSProof(
-		ctx context.Context,
-		sourceViewPublicKey []byte,
-		nftCommitment *big.Int,
-		destinationPaymentPublicKey *big.Int,
-		destinationSalt *big.Int,
-		paymentAmount *big.Int,
-		tokenAddress string,
-		deposits []*types.DvpDeposit,
-	) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 	GenerateERC1155JSProof(
 		ctx context.Context,
 		sourceViewPublicKey []byte,

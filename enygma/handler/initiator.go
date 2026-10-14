@@ -84,16 +84,7 @@ type initiatorDepositConsolidator interface {
 }
 
 type initiatorDvpProofGenerator interface {
-	GenerateEnygmaJSProof(
-		ctx context.Context,
-		sourceViewPublicKey []byte,
-		nftCommitment *big.Int,
-		destinationPaymentPublicKey *big.Int,
-		destinationSalt *big.Int,
-		paymentAmount *big.Int,
-		tokenAddress string,
-		deposits []*types.DvpDeposit,
-	) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 }
 
 type initiatorTracer interface {
@@ -530,16 +521,15 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		return blockNumber, fmt.Errorf("generating salt: %w", err)
 	}
 
-	jsProof, err := s.dvpProofGen.GenerateEnygmaJSProof(
-		ctx,
-		viewPubKey,
-		nftCommitment,
-		spendPublicKey,
-		destSalt,
-		amount,
-		enygmaAddress.Hex(),
-		jsDeposits,
-	)
+	jsProof, err := s.dvpProofGen.GenerateEnygmaJSProof(ctx, dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         viewPubKey,
+		NftCommitment:               nftCommitment,
+		DestinationPaymentPublicKey: spendPublicKey,
+		DestinationSalt:             destSalt,
+		PaymentAmount:               amount,
+		TokenAddress:                enygmaAddress.Hex(),
+		Deposits:                    jsDeposits,
+	})
 	if err != nil {
 		return blockNumber, fmt.Errorf("generate enygma JS proof: %w", err)
 	}

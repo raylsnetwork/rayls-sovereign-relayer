@@ -715,7 +715,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpdateStatusForCommitmentsFunc = func(ctx context.Context, commitments []string, status types.DvpDepositStatus) error {
@@ -756,7 +756,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		assert.Equal(t, 1, len(deps.Executor.ExecuteEnygmaWithdrawalCalls()))
 		// The withdraw proof must open the join-split's payment output, so the
 		// executor gets the same salt the join-split used for that output.
-		jsSalt := deps.DvpProofGenerator.GenerateEnygmaJSProofCalls()[0].DestinationSalt
+		jsSalt := deps.DvpProofGenerator.GenerateEnygmaJSProofCalls()[0].In.DestinationSalt
 		assert.NotNil(t, jsSalt)
 		assert.Equal(t, jsSalt, deps.Executor.ExecuteEnygmaWithdrawalCalls()[0].Req.PaymentSalt)
 	})
@@ -893,7 +893,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return nil, errors.New("proof generation failed")
 		}
 		deps.DvpDepositRepository.BatchUpdateStatusForCommitmentsFunc = func(ctx context.Context, commitments []string, status types.DvpDepositStatus) error {
@@ -936,7 +936,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, publicKey *big.Int, destinationSalt *big.Int, amount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return createTestProofReceipt(), nil
 		}
 		deps.DvpDepositRepository.BatchUpdateStatusForCommitmentsFunc = func(ctx context.Context, commitments []string, status types.DvpDepositStatus) error {
@@ -1024,7 +1024,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1075,7 +1075,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1137,7 +1137,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return createTestPaymentSpendKey(), nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return createTestProofReceipt(), nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1208,7 +1208,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1265,7 +1265,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1326,7 +1326,7 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1389,10 +1389,10 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(_ context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			// Verify original deposit is used (1000 tokens)
-			assert.Equal(t, 1, len(deposits))
-			assert.Equal(t, big.NewInt(1000), deposits[0].TokenAmount)
+			assert.Equal(t, 1, len(in.Deposits))
+			assert.Equal(t, big.NewInt(1000), in.Deposits[0].TokenAmount)
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1475,10 +1475,10 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(_ context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			// Verify only the exact match deposit is passed (750 tokens)
-			assert.Equal(t, 1, len(deposits))
-			assert.Equal(t, big.NewInt(750), deposits[0].TokenAmount)
+			assert.Equal(t, 1, len(in.Deposits))
+			assert.Equal(t, big.NewInt(750), in.Deposits[0].TokenAmount)
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1560,9 +1560,9 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
 			return keypair, nil
 		}
-		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
-			// Verify both deposits passed (no filtering)
-			assert.Equal(t, 2, len(deposits))
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(_ context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
+			// Verify both in.Deposits passed (no filtering)
+			assert.Equal(t, 2, len(in.Deposits))
 			return proof, nil
 		}
 		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
@@ -1600,6 +1600,6 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		// Verify proof was generated with both deposits (no exact match to filter)
 		proofCalls := deps.DvpProofGenerator.GenerateEnygmaJSProofCalls()
 		assert.Equal(t, 1, len(proofCalls))
-		assert.Equal(t, 2, len(proofCalls[0].Deposits))
+		assert.Equal(t, 2, len(proofCalls[0].In.Deposits))
 	})
 }

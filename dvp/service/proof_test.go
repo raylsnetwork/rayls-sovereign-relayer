@@ -117,6 +117,19 @@ func (f *proofFixture) service() *service.ProofService {
 	)
 }
 
+// enygmaJSProofInput is a join-split of a single 100-unit deposit paying 50.
+func (f *proofFixture) enygmaJSProofInput() dvp.EnygmaJSProofInput {
+	return dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         f.viewPK,
+		NftCommitment:               big.NewInt(777),
+		DestinationPaymentPublicKey: big.NewInt(456),
+		DestinationSalt:             big.NewInt(0xA1),
+		PaymentAmount:               big.NewInt(50),
+		TokenAddress:                "0x5678",
+		Deposits:                    []*types.DvpDeposit{proofEnygmaDeposit(100)},
+	}
+}
+
 // --- deposit helpers ---
 
 func proofERC1155Deposit(amount int64) *types.DvpDeposit {
@@ -304,12 +317,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 	t.Run("successfully generates proof with single deposit", func(t *testing.T) {
 		f := newProofFixture()
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -319,12 +327,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 	t.Run("creates change deposit when change amount > 0", func(t *testing.T) {
 		f := newProofFixture()
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -338,12 +341,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 			return nil, errors.New("merkle proof generation failed")
 		}
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -356,12 +354,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 			return nil, errors.New("keypair retrieval failed")
 		}
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -374,12 +367,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 			return dvp.Proof{}, errors.New("proof generation failed")
 		}
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -392,12 +380,7 @@ func TestProofService_GenerateEnygmaJSProof(t *testing.T) {
 			return errors.New("deposit creation failed")
 		}
 
-		result, err := f.service().GenerateEnygmaJSProof(
-			context.Background(), f.viewPK,
-			big.NewInt(777), big.NewInt(456), big.NewInt(0xA1), big.NewInt(50),
-			"0x5678",
-			[]*types.DvpDeposit{proofEnygmaDeposit(100)},
-		)
+		result, err := f.service().GenerateEnygmaJSProof(context.Background(), f.enygmaJSProofInput())
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
