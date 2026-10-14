@@ -430,17 +430,11 @@ type EnygmaWithdrawalRequest struct {
 // ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
 // back into the Enygma balance, binding the proof to the join-split payment output.
 func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req EnygmaWithdrawalRequest) error {
-	chainEventID := req.ChainEventID
-	resourceId := req.ResourceId
-	amount := req.Amount
-	paymentSalt := req.PaymentSalt
-	blockNumber := req.BlockNumber
-	enygmaAddress := req.EnygmaAddress
-	jsProof := req.JSProof
-	from := req.From
-	txHash := req.TxHash
+	if req.Amount == nil || req.PaymentSalt == nil {
+		return errors.New("withdrawal request is missing its amount or payment salt")
+	}
 
-	blockNumberPrivateHub := new(big.Int).SetUint64(blockNumber)
+	blockNumberPrivateHub := new(big.Int).SetUint64(req.BlockNumber)
 
 	spendKeyResp, err := e.keysClient.GetPaymentSpendKey(ctx, &keyspb.GetPaymentSpendKeyRequest{})
 	if err != nil {
@@ -455,18 +449,18 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 	// amount, and the contract requires it to equal the receipt's commitments[0].
 	paymentCommitment, err := e.commitmentCalculator.CalculatePaymentCommitment(
 		spendKey.PublicKey,
-		paymentSalt,
-		amount,
-		enygmaAddress.Hex(),
+		req.PaymentSalt,
+		req.Amount,
+		req.EnygmaAddress.Hex(),
 	)
 	if err != nil {
 		return fmt.Errorf("calculating payment commitment: %w", err)
 	}
-	if err := checkPaymentOutput(jsProof, paymentCommitment); err != nil {
+	if err := checkPaymentOutput(req.JSProof, paymentCommitment); err != nil {
 		return fmt.Errorf("validating join-split payment output for withdrawal: %w", err)
 	}
 
-	batches, err := e.batcher.CreateBatchesWithAnonimity(ctx, resourceId, blockNumberPrivateHub, nil)
+	batches, err := e.batcher.CreateBatchesWithAnonimity(ctx, req.ResourceId, blockNumberPrivateHub, nil)
 	if err != nil {
 		return fmt.Errorf("creating batches for withdrawal: %w", err)
 	}
@@ -475,21 +469,21 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 	proof, _, rValues, _, err := e.proofGen.GenerateWithdrawProof(
 		ctx,
 		enygma.WithdrawProofParams{
-			ResourceId:        resourceId,
+			ResourceId:        req.ResourceId,
 			AnonymityIndex:    anonymityIndex,
-			SenderAmount:      amount,
+			SenderAmount:      req.Amount,
 			BlockNumber:       blockNumberPrivateHub,
 			Batches:           batches,
-			TokenAddress:      enygmaAddress,
+			TokenAddress:      req.EnygmaAddress,
 			PaymentCommitment: paymentCommitment,
 			PaymentSecretKey:  spendKey.SecretKey,
-			PaymentSalt:       paymentSalt,
+			PaymentSalt:       req.PaymentSalt,
 		},
 	)
 	if err != nil {
 		slog.Error(
 			"Error generating Enygma withdrawal proof",
-			slog.String("resourceId", resourceId),
+			slog.String("resourceId", req.ResourceId),
 			slog.String("err", err.Error()),
 		)
 		return fmt.Errorf("generating enygma withdrawal proof: %w", err)
@@ -506,22 +500,22 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 	ctxTx, cancel := context.WithTimeout(ctx, e.conf.DefaultContextTimeout)
 	defer cancel()
 
-	enygmaIntegrationAddress, err := e.enygmaClient.GetDvpIntegrationContractAddress(ctx, enygmaAddress)
+	enygmaIntegrationAddress, err := e.enygmaClient.GetDvpIntegrationContractAddress(ctx, req.EnygmaAddress)
 	if err != nil {
 		return fmt.Errorf("getting dvp integration contract address for withdrawal: %w", err)
 	}
 
-	err = e.enygmaIntegrationClient.Withdraw(ctxTx, chainEventID, batches, proof, blockNumberPrivateHub, jsProof, e.plChainId, resourceId, amount, from, txHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Withdraw(ctxTx, req.ChainEventID, batches, proof, blockNumberPrivateHub, req.JSProof, e.plChainId, req.ResourceId, req.Amount, req.From, req.TxHash, enygmaIntegrationAddress)
 	if err != nil {
-		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", resourceId), slog.Any("err", err))
+		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", req.ResourceId), slog.Any("err", err))
 		return fmt.Errorf("signing enygma withdrawal: %w", err)
 	}
 
 	history := types.EnygmaHistory{
-		ResourceId:            resourceId,
+		ResourceId:            req.ResourceId,
 		FromChainId:           e.plChainId,
 		RFactor:               senderRFactor,
-		BalanceChange:         amount,
+		BalanceChange:         req.Amount,
 		BlockNumberPrivateHub: blockNumberPrivateHub,
 		EventType:             types.EnygmaWithdrawFromDvp,
 	}
@@ -532,7 +526,7 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 		}
 	}
 
-	slog.Debug("Enygma withdrawal done", slog.String("resourceId", resourceId))
+	slog.Debug("Enygma withdrawal done", slog.String("resourceId", req.ResourceId))
 	return nil
 }
 

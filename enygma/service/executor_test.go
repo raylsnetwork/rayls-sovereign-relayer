@@ -1524,6 +1524,33 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 	}
 }
 
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MissingRequestFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		mutate func(req *service.EnygmaWithdrawalRequest)
+	}{
+		{name: "nil amount", mutate: func(req *service.EnygmaWithdrawalRequest) { req.Amount = nil }},
+		{name: "nil payment salt", mutate: func(req *service.EnygmaWithdrawalRequest) { req.PaymentSalt = nil }},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			deps := newWithdrawalTestDeps()
+			req := executorTestWithdrawalRequest()
+			tc.mutate(&req)
+
+			err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), req)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "withdrawal request is missing its amount or payment salt")
+			assert.Empty(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls())
+			assert.Empty(t, deps.proofGen.GenerateWithdrawProofCalls())
+		})
+	}
+}
+
 func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 	t.Parallel()
 
@@ -1552,6 +1579,16 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 		{
 			name:    "receipt without outputs",
 			receipt: &dvp.ProofReceipt{},
+			wantErr: "join-split receipt has no payment output",
+		},
+		{
+			name:    "receipt with nil payment output",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{nil}},
+			wantErr: "join-split receipt has no payment output",
+		},
+		{
+			name:    "nil receipt",
+			receipt: nil,
 			wantErr: "join-split receipt has no payment output",
 		},
 	}
