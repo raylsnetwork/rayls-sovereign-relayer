@@ -568,15 +568,15 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		blockNumber,
 		func(ctx context.Context, nextBlockNumber uint64) error {
 			return s.executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
-				ChainEventID:  chainEventID,
-				ResourceId:    resourceId,
-				Amount:        amount,
-				PaymentSalt:   destSalt,
-				BlockNumber:   nextBlockNumber,
-				EnygmaAddress: enygmaAddress,
-				JSProof:       jsProof,
-				From:          to,
-				TxHash:        txHash,
+				ChainEventID:    chainEventID,
+				ResourceId:      resourceId,
+				Amount:          amount,
+				PaymentSalt:     destSalt,
+				BlockNumber:     nextBlockNumber,
+				EnygmaAddress:   enygmaAddress,
+				JSProof:         jsProof,
+				WithdrawingUser: to,
+				TxHash:          txHash,
 			})
 		},
 	)

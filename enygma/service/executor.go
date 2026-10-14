@@ -421,17 +421,17 @@ type EnygmaWithdrawalRequest struct {
 	BlockNumber   uint64
 	EnygmaAddress common.Address
 	JSProof       *dvp.ProofReceipt
-	// From is the user whose DvP balance is withdrawn; it becomes the From of
-	// the DvP balance-update record (user -> DvP integration contract).
-	From   common.Address
-	TxHash common.Hash
+	// WithdrawingUser is the user whose DvP balance is withdrawn; it becomes the
+	// From of the DvP balance-update record (user -> DvP integration contract).
+	WithdrawingUser common.Address
+	TxHash          common.Hash
 }
 
 // ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
 // back into the Enygma balance, binding the proof to the join-split payment output.
 func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req EnygmaWithdrawalRequest) error {
-	if req.Amount == nil || req.PaymentSalt == nil {
-		return errors.New("withdrawal request is missing its amount or payment salt")
+	if req.Amount == nil || req.PaymentSalt == nil || req.JSProof == nil {
+		return errors.New("withdrawal request is missing its amount, payment salt or join-split receipt")
 	}
 
 	blockNumberPrivateHub := new(big.Int).SetUint64(req.BlockNumber)
@@ -505,7 +505,7 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 		return fmt.Errorf("getting dvp integration contract address for withdrawal: %w", err)
 	}
 
-	err = e.enygmaIntegrationClient.Withdraw(ctxTx, req.ChainEventID, batches, proof, blockNumberPrivateHub, req.JSProof, e.plChainId, req.ResourceId, req.Amount, req.From, req.TxHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Withdraw(ctxTx, req.ChainEventID, batches, proof, blockNumberPrivateHub, req.JSProof, e.plChainId, req.ResourceId, req.Amount, req.WithdrawingUser, req.TxHash, enygmaIntegrationAddress)
 	if err != nil {
 		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", req.ResourceId), slog.Any("err", err))
 		return fmt.Errorf("signing enygma withdrawal: %w", err)

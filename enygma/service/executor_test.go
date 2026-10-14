@@ -1297,15 +1297,15 @@ func executorTestPaymentCommitmentCalculator() *executorCommitmentCalculatorMock
 // output (commitments[0]) is 250, the commitment the calculator mocks return.
 func executorTestWithdrawalRequest() service.EnygmaWithdrawalRequest {
 	return service.EnygmaWithdrawalRequest{
-		ChainEventID:  "test-batch-id",
-		ResourceId:    executorTestResourceId(),
-		Amount:        executorTestAmount(),
-		PaymentSalt:   big.NewInt(1),
-		BlockNumber:   executorTestBlockNumber(),
-		EnygmaAddress: executorTestEnygmaAddress(),
-		JSProof:       &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
-		From:          executorTestFromAddress(),
-		TxHash:        executorTestTxHash(),
+		ChainEventID:    "test-batch-id",
+		ResourceId:      executorTestResourceId(),
+		Amount:          executorTestAmount(),
+		PaymentSalt:     big.NewInt(1),
+		BlockNumber:     executorTestBlockNumber(),
+		EnygmaAddress:   executorTestEnygmaAddress(),
+		JSProof:         &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
+		WithdrawingUser: executorTestFromAddress(),
+		TxHash:          executorTestTxHash(),
 	}
 }
 
@@ -1533,6 +1533,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MissingRequestFields(t *testing.
 	}{
 		{name: "nil amount", mutate: func(req *service.EnygmaWithdrawalRequest) { req.Amount = nil }},
 		{name: "nil payment salt", mutate: func(req *service.EnygmaWithdrawalRequest) { req.PaymentSalt = nil }},
+		{name: "nil join-split receipt", mutate: func(req *service.EnygmaWithdrawalRequest) { req.JSProof = nil }},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1544,7 +1545,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MissingRequestFields(t *testing.
 			err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), req)
 
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "withdrawal request is missing its amount or payment salt")
+			assert.Contains(t, err.Error(), "withdrawal request is missing its amount, payment salt or join-split receipt")
 			assert.Empty(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls())
 			assert.Empty(t, deps.proofGen.GenerateWithdrawProofCalls())
 		})
@@ -1584,11 +1585,6 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 		{
 			name:    "receipt with nil payment output",
 			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{nil}},
-			wantErr: "join-split receipt has no payment output",
-		},
-		{
-			name:    "nil receipt",
-			receipt: nil,
 			wantErr: "join-split receipt has no payment output",
 		},
 	}
