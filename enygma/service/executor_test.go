@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/raylsnetwork/rayls-sovereign-relayer/contractclient"
 	keyspb "github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/dvp"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma"
@@ -771,19 +772,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return nil
 			},
 		}
@@ -828,7 +817,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 		assert.Equal(t, new(big.Int).Neg(amount), history.BalanceChange)
 		assert.Equal(t, new(big.Int).SetUint64(blockNumber), history.BlockNumberPrivateHub)
 		// The integration client should receive the address resolved by the enygma client.
-		assert.Equal(t, integrationAddress, integrationClient.DepositCalls()[0].DvpIntegrationAddress)
+		assert.Equal(t, integrationAddress, integrationClient.DepositCalls()[0].Req.DvpIntegrationAddress)
 	})
 
 	t.Run("returns error when batcher fails", func(t *testing.T) {
@@ -1141,19 +1130,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return errors.New("deposit failed")
 			},
 		}
@@ -1234,19 +1211,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return nil
 			},
 		}
@@ -1357,10 +1322,7 @@ func newWithdrawalTestDeps() *withdrawalTestDeps {
 			},
 		},
 		integrationClient: &ExecutorDvpIntegrationClientMock{
-			WithdrawFunc: func(
-				context.Context, string, []*types.EnygmaTransferBatch, *types.EnygmaProofResponse, *big.Int,
-				*dvp.ProofReceipt, *big.Int, string, *big.Int, common.Address, common.Hash, common.Address,
-			) error {
+			WithdrawFunc: func(context.Context, contractclient.DvpIntegrationTxRequest, *dvp.ProofReceipt) error {
 				return nil
 			},
 		},
@@ -1410,7 +1372,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	require.Len(t, deps.integrationClient.WithdrawCalls(), 1)
 	assert.Equal(t,
 		common.HexToAddress(withdrawalTestIntegrationAddress),
-		deps.integrationClient.WithdrawCalls()[0].DvpIntegrationAddress,
+		deps.integrationClient.WithdrawCalls()[0].Req.DvpIntegrationAddress,
 	)
 
 	require.Len(t, deps.repository.InsertEnygmaHistoryCalls(), 1)
@@ -1506,10 +1468,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 		{
 			name: "Withdraw fails",
 			breakDeps: func(d *withdrawalTestDeps) {
-				d.integrationClient.WithdrawFunc = func(
-					context.Context, string, []*types.EnygmaTransferBatch, *types.EnygmaProofResponse, *big.Int,
-					*dvp.ProofReceipt, *big.Int, string, *big.Int, common.Address, common.Hash, common.Address,
-				) error {
+				d.integrationClient.WithdrawFunc = func(context.Context, contractclient.DvpIntegrationTxRequest, *dvp.ProofReceipt) error {
 					return errors.New("withdrawal failed")
 				}
 			},

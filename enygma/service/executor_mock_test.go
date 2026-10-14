@@ -6,6 +6,7 @@ package service_test
 import (
 	"context"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/raylsnetwork/rayls-sovereign-relayer/contractclient"
 	keyspb "github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/dvp"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma"
@@ -628,10 +629,10 @@ func (mock *executorEnygmaClientMock) TransferBatchCalls() []struct {
 //
 //		// make and configure a mocked service.ExecutorDvpIntegrationClient
 //		mockedExecutorDvpIntegrationClient := &ExecutorDvpIntegrationClientMock{
-//			DepositFunc: func(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error {
+//			DepositFunc: func(ctx context.Context, req contractclient.DvpIntegrationTxRequest) error {
 //				panic("mock out the Deposit method")
 //			},
-//			WithdrawFunc: func(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, jsProof *dvp.ProofReceipt, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error {
+//			WithdrawFunc: func(ctx context.Context, req contractclient.DvpIntegrationTxRequest, jsProof *dvp.ProofReceipt) error {
 //				panic("mock out the Withdraw method")
 //			},
 //		}
@@ -642,10 +643,10 @@ func (mock *executorEnygmaClientMock) TransferBatchCalls() []struct {
 //	}
 type ExecutorDvpIntegrationClientMock struct {
 	// DepositFunc mocks the Deposit method.
-	DepositFunc func(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
+	DepositFunc func(ctx context.Context, req contractclient.DvpIntegrationTxRequest) error
 
 	// WithdrawFunc mocks the Withdraw method.
-	WithdrawFunc func(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, jsProof *dvp.ProofReceipt, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
+	WithdrawFunc func(ctx context.Context, req contractclient.DvpIntegrationTxRequest, jsProof *dvp.ProofReceipt) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -653,53 +654,17 @@ type ExecutorDvpIntegrationClientMock struct {
 		Deposit []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ChainEventID is the chainEventID argument value.
-			ChainEventID string
-			// Batches is the batches argument value.
-			Batches []*types.EnygmaTransferBatch
-			// Proof is the proof argument value.
-			Proof *types.EnygmaProofResponse
-			// BlockNumber is the blockNumber argument value.
-			BlockNumber *big.Int
-			// ChainId is the chainId argument value.
-			ChainId *big.Int
-			// ResourceId is the resourceId argument value.
-			ResourceId string
-			// Amount is the amount argument value.
-			Amount *big.Int
-			// From is the from argument value.
-			From common.Address
-			// SourceTxHash is the sourceTxHash argument value.
-			SourceTxHash common.Hash
-			// DvpIntegrationAddress is the dvpIntegrationAddress argument value.
-			DvpIntegrationAddress common.Address
+			// Req is the req argument value.
+			Req contractclient.DvpIntegrationTxRequest
 		}
 		// Withdraw holds details about calls to the Withdraw method.
 		Withdraw []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ChainEventID is the chainEventID argument value.
-			ChainEventID string
-			// Batches is the batches argument value.
-			Batches []*types.EnygmaTransferBatch
-			// Proof is the proof argument value.
-			Proof *types.EnygmaProofResponse
-			// BlockNumber is the blockNumber argument value.
-			BlockNumber *big.Int
+			// Req is the req argument value.
+			Req contractclient.DvpIntegrationTxRequest
 			// JsProof is the jsProof argument value.
 			JsProof *dvp.ProofReceipt
-			// ChainId is the chainId argument value.
-			ChainId *big.Int
-			// ResourceId is the resourceId argument value.
-			ResourceId string
-			// Amount is the amount argument value.
-			Amount *big.Int
-			// From is the from argument value.
-			From common.Address
-			// SourceTxHash is the sourceTxHash argument value.
-			SourceTxHash common.Hash
-			// DvpIntegrationAddress is the dvpIntegrationAddress argument value.
-			DvpIntegrationAddress common.Address
 		}
 	}
 	lockDeposit  sync.RWMutex
@@ -707,39 +672,21 @@ type ExecutorDvpIntegrationClientMock struct {
 }
 
 // Deposit calls DepositFunc.
-func (mock *ExecutorDvpIntegrationClientMock) Deposit(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error {
+func (mock *ExecutorDvpIntegrationClientMock) Deposit(ctx context.Context, req contractclient.DvpIntegrationTxRequest) error {
 	if mock.DepositFunc == nil {
 		panic("ExecutorDvpIntegrationClientMock.DepositFunc: method is nil but ExecutorDvpIntegrationClient.Deposit was just called")
 	}
 	callInfo := struct {
-		Ctx                   context.Context
-		ChainEventID          string
-		Batches               []*types.EnygmaTransferBatch
-		Proof                 *types.EnygmaProofResponse
-		BlockNumber           *big.Int
-		ChainId               *big.Int
-		ResourceId            string
-		Amount                *big.Int
-		From                  common.Address
-		SourceTxHash          common.Hash
-		DvpIntegrationAddress common.Address
+		Ctx context.Context
+		Req contractclient.DvpIntegrationTxRequest
 	}{
-		Ctx:                   ctx,
-		ChainEventID:          chainEventID,
-		Batches:               batches,
-		Proof:                 proof,
-		BlockNumber:           blockNumber,
-		ChainId:               chainId,
-		ResourceId:            resourceId,
-		Amount:                amount,
-		From:                  from,
-		SourceTxHash:          sourceTxHash,
-		DvpIntegrationAddress: dvpIntegrationAddress,
+		Ctx: ctx,
+		Req: req,
 	}
 	mock.lockDeposit.Lock()
 	mock.calls.Deposit = append(mock.calls.Deposit, callInfo)
 	mock.lockDeposit.Unlock()
-	return mock.DepositFunc(ctx, chainEventID, batches, proof, blockNumber, chainId, resourceId, amount, from, sourceTxHash, dvpIntegrationAddress)
+	return mock.DepositFunc(ctx, req)
 }
 
 // DepositCalls gets all the calls that were made to Deposit.
@@ -747,30 +694,12 @@ func (mock *ExecutorDvpIntegrationClientMock) Deposit(ctx context.Context, chain
 //
 //	len(mockedExecutorDvpIntegrationClient.DepositCalls())
 func (mock *ExecutorDvpIntegrationClientMock) DepositCalls() []struct {
-	Ctx                   context.Context
-	ChainEventID          string
-	Batches               []*types.EnygmaTransferBatch
-	Proof                 *types.EnygmaProofResponse
-	BlockNumber           *big.Int
-	ChainId               *big.Int
-	ResourceId            string
-	Amount                *big.Int
-	From                  common.Address
-	SourceTxHash          common.Hash
-	DvpIntegrationAddress common.Address
+	Ctx context.Context
+	Req contractclient.DvpIntegrationTxRequest
 } {
 	var calls []struct {
-		Ctx                   context.Context
-		ChainEventID          string
-		Batches               []*types.EnygmaTransferBatch
-		Proof                 *types.EnygmaProofResponse
-		BlockNumber           *big.Int
-		ChainId               *big.Int
-		ResourceId            string
-		Amount                *big.Int
-		From                  common.Address
-		SourceTxHash          common.Hash
-		DvpIntegrationAddress common.Address
+		Ctx context.Context
+		Req contractclient.DvpIntegrationTxRequest
 	}
 	mock.lockDeposit.RLock()
 	calls = mock.calls.Deposit
@@ -779,41 +708,23 @@ func (mock *ExecutorDvpIntegrationClientMock) DepositCalls() []struct {
 }
 
 // Withdraw calls WithdrawFunc.
-func (mock *ExecutorDvpIntegrationClientMock) Withdraw(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, jsProof *dvp.ProofReceipt, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error {
+func (mock *ExecutorDvpIntegrationClientMock) Withdraw(ctx context.Context, req contractclient.DvpIntegrationTxRequest, jsProof *dvp.ProofReceipt) error {
 	if mock.WithdrawFunc == nil {
 		panic("ExecutorDvpIntegrationClientMock.WithdrawFunc: method is nil but ExecutorDvpIntegrationClient.Withdraw was just called")
 	}
 	callInfo := struct {
-		Ctx                   context.Context
-		ChainEventID          string
-		Batches               []*types.EnygmaTransferBatch
-		Proof                 *types.EnygmaProofResponse
-		BlockNumber           *big.Int
-		JsProof               *dvp.ProofReceipt
-		ChainId               *big.Int
-		ResourceId            string
-		Amount                *big.Int
-		From                  common.Address
-		SourceTxHash          common.Hash
-		DvpIntegrationAddress common.Address
+		Ctx     context.Context
+		Req     contractclient.DvpIntegrationTxRequest
+		JsProof *dvp.ProofReceipt
 	}{
-		Ctx:                   ctx,
-		ChainEventID:          chainEventID,
-		Batches:               batches,
-		Proof:                 proof,
-		BlockNumber:           blockNumber,
-		JsProof:               jsProof,
-		ChainId:               chainId,
-		ResourceId:            resourceId,
-		Amount:                amount,
-		From:                  from,
-		SourceTxHash:          sourceTxHash,
-		DvpIntegrationAddress: dvpIntegrationAddress,
+		Ctx:     ctx,
+		Req:     req,
+		JsProof: jsProof,
 	}
 	mock.lockWithdraw.Lock()
 	mock.calls.Withdraw = append(mock.calls.Withdraw, callInfo)
 	mock.lockWithdraw.Unlock()
-	return mock.WithdrawFunc(ctx, chainEventID, batches, proof, blockNumber, jsProof, chainId, resourceId, amount, from, sourceTxHash, dvpIntegrationAddress)
+	return mock.WithdrawFunc(ctx, req, jsProof)
 }
 
 // WithdrawCalls gets all the calls that were made to Withdraw.
@@ -821,32 +732,14 @@ func (mock *ExecutorDvpIntegrationClientMock) Withdraw(ctx context.Context, chai
 //
 //	len(mockedExecutorDvpIntegrationClient.WithdrawCalls())
 func (mock *ExecutorDvpIntegrationClientMock) WithdrawCalls() []struct {
-	Ctx                   context.Context
-	ChainEventID          string
-	Batches               []*types.EnygmaTransferBatch
-	Proof                 *types.EnygmaProofResponse
-	BlockNumber           *big.Int
-	JsProof               *dvp.ProofReceipt
-	ChainId               *big.Int
-	ResourceId            string
-	Amount                *big.Int
-	From                  common.Address
-	SourceTxHash          common.Hash
-	DvpIntegrationAddress common.Address
+	Ctx     context.Context
+	Req     contractclient.DvpIntegrationTxRequest
+	JsProof *dvp.ProofReceipt
 } {
 	var calls []struct {
-		Ctx                   context.Context
-		ChainEventID          string
-		Batches               []*types.EnygmaTransferBatch
-		Proof                 *types.EnygmaProofResponse
-		BlockNumber           *big.Int
-		JsProof               *dvp.ProofReceipt
-		ChainId               *big.Int
-		ResourceId            string
-		Amount                *big.Int
-		From                  common.Address
-		SourceTxHash          common.Hash
-		DvpIntegrationAddress common.Address
+		Ctx     context.Context
+		Req     contractclient.DvpIntegrationTxRequest
+		JsProof *dvp.ProofReceipt
 	}
 	mock.lockWithdraw.RLock()
 	calls = mock.calls.Withdraw

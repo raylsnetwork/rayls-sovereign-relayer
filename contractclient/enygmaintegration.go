@@ -43,34 +43,33 @@ func NewDvpIntegrationClient(
 	}
 }
 
-// SignDeposit signs a deposit transaction without broadcasting it.
-// The caller is responsible for broadcasting and waiting for the receipt.
-func (c *DvpIntegrationClient) Deposit(
-	ctx context.Context,
-	chainEventID string,
-	batches []*types.EnygmaTransferBatch,
-	proof *types.EnygmaProofResponse,
-	blockNumber *big.Int,
-	chainId *big.Int,
-	resourceId string,
-	amount *big.Int,
-	from common.Address,
-	sourceTxHash common.Hash,
-	dvpIntegrationAddress common.Address,
-) error {
-	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, batches, blockNumber)
+// DvpIntegrationTxRequest holds the inputs shared by Enygma deposits into and
+// withdrawals from the DvP integration contract.
+type DvpIntegrationTxRequest struct {
+	ChainEventID string
+	Batches      []*types.EnygmaTransferBatch
+	Proof        *types.EnygmaProofResponse
+	BlockNumber  *big.Int
+	ChainID      *big.Int
+	ResourceID   string
+	Amount       *big.Int
+	// From is the user whose balance moves; it becomes the From of the DvP
+	// balance-update record.
+	From                  common.Address
+	SourceTxHash          common.Hash
+	DvpIntegrationAddress common.Address
+}
+
+// Deposit signs and sends a deposit of req.Amount from the Enygma balance into DvP.
+func (c *DvpIntegrationClient) Deposit(ctx context.Context, req DvpIntegrationTxRequest) error {
+	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, req.Batches, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to encrypt enygma deposit to dvp batches", err)
 	}
 
-	contractProof := EnygmaDvpIntegration.IEnygmaDvpIntegrationWithdrawOrDepositProof{
-		PiA:          [2]*big.Int{proof.PiA[0], proof.PiA[1]},
-		PiB:          [2][2]*big.Int{{proof.PiB[0][0], proof.PiB[0][1]}, {proof.PiB[1][0], proof.PiB[1][1]}},
-		PiC:          [2]*big.Int{proof.PiC[0], proof.PiC[1]},
-		PublicSignal: proof.PublicSignal,
-	}
+	contractProof := toWithdrawOrDepositProof(req.Proof)
 
-	block, err := c.ethClient.BlockByNumber(ctx, blockNumber)
+	block, err := c.ethClient.BlockByNumber(ctx, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to get block for deposit timestamp", withstack.Wrap(err))
 	}
@@ -78,13 +77,13 @@ func (c *DvpIntegrationClient) Deposit(
 	burnUpdate := types.DvpBalanceUpdated{
 		ErcId:             nil,
 		TokenType:         uint8(types.ENYGMA),
-		ResourceId:        resourceId,
-		SourceChainId:     chainId,
-		SourceTxHash:      sourceTxHash.Hex(),
+		ResourceId:        req.ResourceID,
+		SourceChainId:     req.ChainID,
+		SourceTxHash:      req.SourceTxHash.Hex(),
 		SourceTxTimestamp: time.Unix(int64(block.Time()), 0).UTC(),
-		From:              from.Hex(),
-		To:                dvpIntegrationAddress.Hex(),
-		Amount:            amount,
+		From:              req.From.Hex(),
+		To:                req.DvpIntegrationAddress.Hex(),
+		Amount:            req.Amount,
 		UpdateType:        types.Burn,
 	}
 
@@ -95,7 +94,8 @@ func (c *DvpIntegrationClient) Deposit(
 
 	calldata := c.contract.PackDepositToDvp(contractProof, encrBatches, encryptedBurnUpdate)
 
-	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Deposit", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
+	id := IDFor("dvpintegration.Deposit", req.ChainEventID, req.BlockNumber.String())
+	_, err = c.executor.Execute(ctx, id, calldata, req.DvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute deposit to dvp", withstack.Wrap(err))
 	}
@@ -103,31 +103,19 @@ func (c *DvpIntegrationClient) Deposit(
 	return nil
 }
 
+// Withdraw signs and sends a withdrawal of req.Amount from DvP back into the
+// Enygma balance, carrying the join-split receipt jsProof it spends.
 func (c *DvpIntegrationClient) Withdraw(
 	ctx context.Context,
-	chainEventID string,
-	batches []*types.EnygmaTransferBatch,
-	proof *types.EnygmaProofResponse,
-	blockNumber *big.Int,
+	req DvpIntegrationTxRequest,
 	jsProof *dvp.ProofReceipt,
-	chainId *big.Int,
-	resourceId string,
-	amount *big.Int,
-	from common.Address,
-	sourceTxHash common.Hash,
-	dvpIntegrationAddress common.Address,
 ) error {
-	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, batches, blockNumber)
+	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, req.Batches, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to encrypt enygma withdraw from dvp batches", err)
 	}
 
-	contractProof := EnygmaDvpIntegration.IEnygmaDvpIntegrationWithdrawOrDepositProof{
-		PiA:          [2]*big.Int{proof.PiA[0], proof.PiA[1]},
-		PiB:          [2][2]*big.Int{{proof.PiB[0][0], proof.PiB[0][1]}, {proof.PiB[1][0], proof.PiB[1][1]}},
-		PiC:          [2]*big.Int{proof.PiC[0], proof.PiC[1]},
-		PublicSignal: proof.PublicSignal,
-	}
+	contractProof := toWithdrawOrDepositProof(req.Proof)
 
 	dvpProof := EnygmaDvpIntegration.IDvpProofReceipt{
 		Proof: EnygmaDvpIntegration.IDvpSnarkProof{
@@ -158,7 +146,7 @@ func (c *DvpIntegrationClient) Withdraw(
 		RevertCommitment: jsProof.RevertCommitment,
 	}
 
-	block, err := c.ethClient.BlockByNumber(ctx, blockNumber)
+	block, err := c.ethClient.BlockByNumber(ctx, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to get block for withdrawal timestamp", withstack.Wrap(err))
 	}
@@ -166,13 +154,13 @@ func (c *DvpIntegrationClient) Withdraw(
 	mintUpdate := types.DvpBalanceUpdated{
 		ErcId:             nil,
 		TokenType:         uint8(types.ENYGMA),
-		ResourceId:        resourceId,
-		SourceChainId:     chainId,
-		SourceTxHash:      sourceTxHash.Hex(),
+		ResourceId:        req.ResourceID,
+		SourceChainId:     req.ChainID,
+		SourceTxHash:      req.SourceTxHash.Hex(),
 		SourceTxTimestamp: time.Unix(int64(block.Time()), 0).UTC(),
-		From:              from.Hex(),
-		To:                dvpIntegrationAddress.Hex(),
-		Amount:            amount,
+		From:              req.From.Hex(),
+		To:                req.DvpIntegrationAddress.Hex(),
+		Amount:            req.Amount,
 		UpdateType:        types.Mint,
 	}
 
@@ -183,12 +171,28 @@ func (c *DvpIntegrationClient) Withdraw(
 
 	calldata := c.contract.PackWithdrawFromDvp(contractProof, encrBatches, dvpProof, encryptedMintUpdate)
 
-	_, err = c.executor.Execute(ctx, IDFor("dvpintegration.Withdraw", chainEventID, blockNumber.String()), calldata, dvpIntegrationAddress)
+	id := IDFor("dvpintegration.Withdraw", req.ChainEventID, req.BlockNumber.String())
+	_, err = c.executor.Execute(ctx, id, calldata, req.DvpIntegrationAddress)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to execute withdraw from dvp", withstack.Wrap(err))
 	}
 
 	return nil
+}
+
+// toWithdrawOrDepositProof converts a prover response into the contract's proof struct.
+func toWithdrawOrDepositProof(
+	proof *types.EnygmaProofResponse,
+) EnygmaDvpIntegration.IEnygmaDvpIntegrationWithdrawOrDepositProof {
+	return EnygmaDvpIntegration.IEnygmaDvpIntegrationWithdrawOrDepositProof{
+		PiA: [2]*big.Int{proof.PiA[0], proof.PiA[1]},
+		PiB: [2][2]*big.Int{
+			{proof.PiB[0][0], proof.PiB[0][1]},
+			{proof.PiB[1][0], proof.PiB[1][1]},
+		},
+		PiC:          [2]*big.Int{proof.PiC[0], proof.PiC[1]},
+		PublicSignal: proof.PublicSignal,
+	}
 }
 
 func (c *DvpIntegrationClient) ConsolidateFunds(

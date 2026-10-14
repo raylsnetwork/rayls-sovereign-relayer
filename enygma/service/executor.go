@@ -86,8 +86,8 @@ type executorEnygmaClient interface {
 }
 
 type ExecutorDvpIntegrationClient interface {
-	Deposit(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
-	Withdraw(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, jsProof *dvp.ProofReceipt, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
+	Deposit(ctx context.Context, req contractclient.DvpIntegrationTxRequest) error
+	Withdraw(ctx context.Context, req contractclient.DvpIntegrationTxRequest, jsProof *dvp.ProofReceipt) error
 }
 
 type executorKeysClient interface {
@@ -382,8 +382,18 @@ func (e *EnygmaExecutor) ExecuteEnygmaDeposit(
 	if err != nil {
 		return fmt.Errorf("getting dvp integration contract address for deposit: %w", err)
 	}
-	err = e.enygmaIntegrationClient.Deposit(ctxTx, chainEventID, batches, proof, blockNumberPrivateHub, e.plChainId,
-		resourceId, amount, from, txHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Deposit(ctxTx, contractclient.DvpIntegrationTxRequest{
+		ChainEventID:          chainEventID,
+		Batches:               batches,
+		Proof:                 proof,
+		BlockNumber:           blockNumberPrivateHub,
+		ChainID:               e.plChainId,
+		ResourceID:            resourceId,
+		Amount:                amount,
+		From:                  from,
+		SourceTxHash:          txHash,
+		DvpIntegrationAddress: enygmaIntegrationAddress,
+	})
 	if err != nil {
 		slog.Error(
 			"Error signing Enygma deposit",
@@ -514,7 +524,18 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 		return fmt.Errorf("getting dvp integration contract address for withdrawal: %w", err)
 	}
 
-	err = e.enygmaIntegrationClient.Withdraw(ctxTx, req.ChainEventID, batches, proof, blockNumberPrivateHub, req.JSProof, e.plChainId, req.ResourceId, req.Amount, req.WithdrawingUser, req.TxHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Withdraw(ctxTx, contractclient.DvpIntegrationTxRequest{
+		ChainEventID:          req.ChainEventID,
+		Batches:               batches,
+		Proof:                 proof,
+		BlockNumber:           blockNumberPrivateHub,
+		ChainID:               e.plChainId,
+		ResourceID:            req.ResourceId,
+		Amount:                req.Amount,
+		From:                  req.WithdrawingUser,
+		SourceTxHash:          req.TxHash,
+		DvpIntegrationAddress: enygmaIntegrationAddress,
+	}, req.JSProof)
 	if err != nil {
 		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", req.ResourceId), slog.Any("err", err))
 		return fmt.Errorf("signing enygma withdrawal: %w", err)
