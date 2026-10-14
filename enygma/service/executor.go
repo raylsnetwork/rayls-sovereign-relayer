@@ -430,8 +430,14 @@ type EnygmaWithdrawalRequest struct {
 // ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
 // back into the Enygma balance, binding the proof to the join-split payment output.
 func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req EnygmaWithdrawalRequest) error {
-	if req.Amount == nil || req.PaymentSalt == nil || req.JSProof == nil {
-		return errors.New("withdrawal request is missing its amount, payment salt or join-split receipt")
+	if req.Amount == nil {
+		return errors.New("withdrawal request is missing its amount")
+	}
+	if req.PaymentSalt == nil {
+		return errors.New("withdrawal request is missing its payment salt")
+	}
+	if req.JSProof == nil {
+		return errors.New("withdrawal request is missing its join-split receipt")
 	}
 
 	blockNumberPrivateHub := new(big.Int).SetUint64(req.BlockNumber)
@@ -447,6 +453,9 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 
 	// The withdraw proof opens the join-split's payment output with the credited
 	// amount, and the contract requires it to equal the receipt's commitments[0].
+	// The commitment is recomputed from the spend key fetched above (the proof
+	// needs its secret half anyway), so a key that changed since the initiator
+	// built the join-split is caught here rather than on-chain.
 	paymentCommitment, err := e.commitmentCalculator.CalculatePaymentCommitment(
 		spendKey.PublicKey,
 		req.PaymentSalt,
@@ -542,7 +551,8 @@ func checkPaymentOutput(jsProof *dvp.ProofReceipt, paymentCommitment *big.Int) e
 	}
 	if jsProof.Commitments[0].Cmp(paymentCommitment) != 0 {
 		return fmt.Errorf(
-			"join-split payment output %s does not match withdraw payment commitment %s",
+			"join-split payment output %s does not match withdraw payment commitment %s"+
+				" (spend key, salt or amount differs from the join-split's)",
 			jsProof.Commitments[0], paymentCommitment,
 		)
 	}

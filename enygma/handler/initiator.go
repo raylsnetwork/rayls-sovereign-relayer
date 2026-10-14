@@ -560,6 +560,10 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		return blockNumber, fmt.Errorf("batch upsert nullifiers: %w", err)
 	}
 
+	// destSalt and jsProof are fixed across retries: the receipt's payment output
+	// commits to this salt, so regenerating it would break the withdraw proof.
+	// Only the block number varies, and it is part of the CTS idempotency ID, so
+	// each block bump is signed as a fresh transaction.
 	maxRetries := 30
 	blockNumber, err = s.retryService.RetryOperation(
 		ctx,
