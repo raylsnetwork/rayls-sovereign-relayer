@@ -1323,7 +1323,7 @@ type withdrawalTestDeps struct {
 
 const withdrawalTestIntegrationAddress = "0xintegration5678"
 
-var withdrawalTestRFactor = big.NewInt(456)
+func withdrawalTestRFactor() *big.Int { return big.NewInt(456) }
 
 func newWithdrawalTestDeps() *withdrawalTestDeps {
 	return &withdrawalTestDeps{
@@ -1341,7 +1341,7 @@ func newWithdrawalTestDeps() *withdrawalTestDeps {
 			GenerateWithdrawProofFunc: func(
 				context.Context, enygma.WithdrawProofParams,
 			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				rValues := []*big.Int{withdrawalTestRFactor, big.NewInt(789)}
+				rValues := []*big.Int{withdrawalTestRFactor(), big.NewInt(789)}
 				return &types.EnygmaProofResponse{}, []*types.Point{}, rValues, []*big.Int{}, nil
 			},
 		},
@@ -1417,7 +1417,7 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
 	history := deps.repository.InsertEnygmaHistoryCalls()[0].History
 	assert.Equal(t, types.EnygmaWithdrawFromDvp, history.EventType)
 	assert.Equal(t, executorTestPnChainId(), history.FromChainId)
-	assert.Equal(t, withdrawalTestRFactor, history.RFactor)
+	assert.Equal(t, withdrawalTestRFactor(), history.RFactor)
 	assert.Equal(t, executorTestAmount(), history.BalanceChange)
 	assert.Equal(t, blockNumber, history.BlockNumberPrivateHub)
 }
@@ -1623,4 +1623,35 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 			assert.Empty(t, deps.proofGen.GenerateWithdrawProofCalls())
 		})
 	}
+}
+
+// A payment-output mismatch (e.g. the spend key rotated after the join-split
+// was built) cannot heal at a later block, so RetryOperation must surface it
+// at once instead of burning every retry; the initiator then reverts the
+// deposits to Unspent so the withdrawal can be re-driven.
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MismatchIsNotRetried(t *testing.T) {
+	t.Parallel()
+
+	deps := newWithdrawalTestDeps()
+	deps.commitmentCalc.CalculatePaymentCommitmentFunc = func(_, _, _ *big.Int, _ string) (*big.Int, error) {
+		return big.NewInt(999), nil
+	}
+	blockWaiter := &MockRetryBlockWaiter{
+		WaitForBlockFunc: func(_ context.Context, target uint64) (uint64, error) { return target + 1, nil },
+	}
+	retry := service.NewRetryService(&testutils.MockTracer{}, blockWaiter)
+	executor := deps.executor()
+
+	_, err := retry.RetryOperation(context.Background(), "withdrawal", 30, executorTestBlockNumber(),
+		func(ctx context.Context, nextBlockNumber uint64) error {
+			req := executorTestWithdrawalRequest()
+			req.BlockNumber = nextBlockNumber
+			return executor.ExecuteEnygmaWithdrawal(ctx, req)
+		},
+	)
+
+	require.ErrorContains(t, err, "non-retryable error encountered")
+	assert.ErrorContains(t, err, "does not match withdraw payment commitment")
+	assert.Len(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls(), 1)
+	assert.Empty(t, blockWaiter.WaitForBlockCalls.Calls)
 }

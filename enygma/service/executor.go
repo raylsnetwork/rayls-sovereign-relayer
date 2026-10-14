@@ -544,6 +544,8 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 // rejects the withdrawal otherwise, so a mismatch is caught before proving.
 // ExecuteEnygmaWithdrawal already rejects a nil receipt; the nil check here is
 // defensive only, so this guard never panics if it gains another caller.
+// A mismatch is deliberately not a retryable error: it cannot heal at a later
+// block, so the withdrawal fails fast and must be re-driven.
 func checkPaymentOutput(jsProof *dvp.ProofReceipt, paymentCommitment *big.Int) error {
 	if paymentCommitment == nil {
 		return errors.New("calculated withdraw payment commitment is nil")
