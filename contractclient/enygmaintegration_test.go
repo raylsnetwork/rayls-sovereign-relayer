@@ -113,8 +113,8 @@ func testDvpIntegrationTxRequest(
 		Batches:               batches,
 		Proof:                 createTestProof(),
 		BlockNumber:           blockNumber,
-		ChainID:               big.NewInt(1337),
-		ResourceID:            "test-resource-id",
+		ChainId:               big.NewInt(1337),
+		ResourceId:            "test-resource-id",
 		Amount:                big.NewInt(1000),
 		DvpIntegrationAddress: dvpIntegrationAddress,
 	}

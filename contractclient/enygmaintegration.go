@@ -50,8 +50,8 @@ type DvpIntegrationTxRequest struct {
 	Batches      []*types.EnygmaTransferBatch
 	Proof        *types.EnygmaProofResponse
 	BlockNumber  *big.Int
-	ChainID      *big.Int
-	ResourceID   string
+	ChainId      *big.Int
+	ResourceId   string
 	Amount       *big.Int
 	// From is the user whose balance moves; it becomes the From of the DvP
 	// balance-update record.
@@ -77,8 +77,8 @@ func (c *DvpIntegrationClient) Deposit(ctx context.Context, req DvpIntegrationTx
 	burnUpdate := types.DvpBalanceUpdated{
 		ErcId:             nil,
 		TokenType:         uint8(types.ENYGMA),
-		ResourceId:        req.ResourceID,
-		SourceChainId:     req.ChainID,
+		ResourceId:        req.ResourceId,
+		SourceChainId:     req.ChainId,
 		SourceTxHash:      req.SourceTxHash.Hex(),
 		SourceTxTimestamp: time.Unix(int64(block.Time()), 0).UTC(),
 		From:              req.From.Hex(),
@@ -154,8 +154,8 @@ func (c *DvpIntegrationClient) Withdraw(
 	mintUpdate := types.DvpBalanceUpdated{
 		ErcId:             nil,
 		TokenType:         uint8(types.ENYGMA),
-		ResourceId:        req.ResourceID,
-		SourceChainId:     req.ChainID,
+		ResourceId:        req.ResourceId,
+		SourceChainId:     req.ChainId,
 		SourceTxHash:      req.SourceTxHash.Hex(),
 		SourceTxTimestamp: time.Unix(int64(block.Time()), 0).UTC(),
 		From:              req.From.Hex(),
