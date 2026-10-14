@@ -1528,10 +1528,17 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		receipt *dvp.ProofReceipt
-		wantErr string
+		name          string
+		receipt       *dvp.ProofReceipt
+		nilCommitment bool
+		wantErr       string
 	}{
+		{
+			name:          "calculator returns a nil payment commitment",
+			receipt:       &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
+			nilCommitment: true,
+			wantErr:       "calculated withdraw payment commitment is nil",
+		},
 		{
 			name:    "receipt payment output differs from the withdrawn amount's commitment",
 			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(251), big.NewInt(0)}},
@@ -1552,6 +1559,11 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			deps := newWithdrawalTestDeps()
+			if tc.nilCommitment {
+				deps.commitmentCalc.CalculatePaymentCommitmentFunc = func(_, _, _ *big.Int, _ string) (*big.Int, error) {
+					return nil, nil
+				}
+			}
 			req := executorTestWithdrawalRequest()
 			req.JSProof = tc.receipt
 

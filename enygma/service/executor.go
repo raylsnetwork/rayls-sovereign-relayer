@@ -421,8 +421,10 @@ type EnygmaWithdrawalRequest struct {
 	BlockNumber   uint64
 	EnygmaAddress common.Address
 	JSProof       *dvp.ProofReceipt
-	From          common.Address
-	TxHash        common.Hash
+	// From is the user whose DvP balance is withdrawn; it becomes the From of
+	// the DvP balance-update record (user -> DvP integration contract).
+	From   common.Address
+	TxHash common.Hash
 }
 
 // ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
@@ -538,6 +540,9 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 // (commitments[0]) is the commitment the withdraw proof will open. The contract
 // rejects the withdrawal otherwise, so a mismatch is caught before proving.
 func checkPaymentOutput(jsProof *dvp.ProofReceipt, paymentCommitment *big.Int) error {
+	if paymentCommitment == nil {
+		return errors.New("calculated withdraw payment commitment is nil")
+	}
 	if jsProof == nil || len(jsProof.Commitments) == 0 || jsProof.Commitments[0] == nil {
 		return errors.New("join-split receipt has no payment output")
 	}
