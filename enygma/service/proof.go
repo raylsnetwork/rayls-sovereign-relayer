@@ -181,10 +181,16 @@ func (s *EnygmaProofService) GenerateDepositProof(
 	return &proof, commonData.DestinationNewCommitments, commonData.DestinationRandomFactors, commonData.MessageTags, nil
 }
 
+// GenerateWithdrawProof builds a withdraw proof that opens the join-split
+// payment output described by params.PaymentCommitment, PaymentSecretKey and
+// PaymentSalt, all of which must be set.
 func (s *EnygmaProofService) GenerateWithdrawProof(
 	ctx context.Context,
 	params enygma.WithdrawProofParams,
 ) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
+	if err := validateWithdrawPaymentOutput(params); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("validating withdraw proof payment output: %w", err)
+	}
 	if err := s.validateAnonymityIndex(params.AnonymityIndex, params.Batches); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("validating withdraw proof anonymity index: %w", err)
 	}
@@ -589,4 +595,19 @@ func bytesSliceToBigInts(slices [][]byte) []*big.Int {
 		result[i] = new(big.Int).SetBytes(b)
 	}
 	return result
+}
+
+// validateWithdrawPaymentOutput rejects withdraw params missing any of the
+// payment-output scalars the prover needs, before any CTS or prover call.
+func validateWithdrawPaymentOutput(params enygma.WithdrawProofParams) error {
+	if params.PaymentCommitment == nil {
+		return fmt.Errorf("withdraw proof params are missing the payment commitment")
+	}
+	if params.PaymentSecretKey == nil {
+		return fmt.Errorf("withdraw proof params are missing the payment secret key")
+	}
+	if params.PaymentSalt == nil {
+		return fmt.Errorf("withdraw proof params are missing the payment salt")
+	}
+	return nil
 }

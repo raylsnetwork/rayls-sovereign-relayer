@@ -10,15 +10,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	"github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/cryptography"
+	"github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma/service"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma/testutils"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/types"
-	"google.golang.org/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 )
 
 // Test helpers - custom EnygmaClient implementation for testing
@@ -432,7 +432,6 @@ func TestGenerateTransferProof(t *testing.T) {
 			},
 		}
 
-
 		tracer := &testutils.MockTracer{}
 
 		svc := service.NewEnygmaProofService(
@@ -516,7 +515,6 @@ func TestGenerateTransferProof(t *testing.T) {
 				return publicValues, nil
 			},
 		}
-
 
 		tracer := &testutils.MockTracer{}
 
@@ -613,7 +611,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch1, batch2, batch3},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		// Create service with mocks (they won't be called due to early validation)
@@ -652,7 +650,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		enygmaClient := &testEnygmaClient{
@@ -706,7 +704,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -752,7 +750,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -798,7 +796,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		kosClient := &MockProofKOSClient{
@@ -852,7 +850,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch1, batch2},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: big.NewInt(999),
-			DepositSalt:  big.NewInt(888),
+			DepositSalt:       big.NewInt(888),
 		}
 
 		sharedSecrets := []*big.Int{
@@ -886,7 +884,6 @@ func TestGenerateDepositProof(t *testing.T) {
 				return createTestEnygmaPublicValues([]*big.Int{chainID1, chainID2}), nil
 			},
 		}
-
 
 		tracer := &testutils.MockTracer{}
 
@@ -924,7 +921,7 @@ func TestGenerateDepositProof(t *testing.T) {
 			Batches:           []*types.EnygmaTransferBatch{batch1, batch2},
 			TokenAddress:      common.HexToAddress("0xDEADBEEF"),
 			DepositCommitment: depositCommitment,
-			DepositSalt:  depositSalt,
+			DepositSalt:       depositSalt,
 		}
 
 		enygmaKey := createTestPaymentSpendKey()
@@ -975,7 +972,6 @@ func TestGenerateDepositProof(t *testing.T) {
 				return publicValues, nil
 			},
 		}
-
 
 		tracer := &testutils.MockTracer{}
 
@@ -1108,8 +1104,33 @@ func TestGenerateWithdrawProof_Errors(t *testing.T) {
 		anonymityIndex int
 		batches        []*types.EnygmaTransferBatch
 		breakDeps      func(d *withdrawProofTestDeps)
+		mutateParams   func(p *enygma.WithdrawProofParams)
 		wantErr        string
 	}{
+		{
+			name:           "missing payment commitment",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps:      func(*withdrawProofTestDeps) {},
+			mutateParams:   func(p *enygma.WithdrawProofParams) { p.PaymentCommitment = nil },
+			wantErr:        "withdraw proof params are missing the payment commitment",
+		},
+		{
+			name:           "missing payment secret key",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps:      func(*withdrawProofTestDeps) {},
+			mutateParams:   func(p *enygma.WithdrawProofParams) { p.PaymentSecretKey = nil },
+			wantErr:        "withdraw proof params are missing the payment secret key",
+		},
+		{
+			name:           "missing payment salt",
+			anonymityIndex: 2,
+			batches:        singleChainBatches,
+			breakDeps:      func(*withdrawProofTestDeps) {},
+			mutateParams:   func(p *enygma.WithdrawProofParams) { p.PaymentSalt = nil },
+			wantErr:        "withdraw proof params are missing the payment salt",
+		},
 		{
 			name:           "unique chainIDs exceed anonymity index",
 			anonymityIndex: 1,
@@ -1199,6 +1220,9 @@ func TestGenerateWithdrawProof_Errors(t *testing.T) {
 				PaymentSecretKey:  big.NewInt(222),
 				PaymentSalt:       big.NewInt(333),
 			}
+			if tc.mutateParams != nil {
+				tc.mutateParams(&params)
+			}
 
 			proof, commitments, randomFactors, _, err := proofService.GenerateWithdrawProof(context.Background(), params)
 
@@ -1277,7 +1301,6 @@ func TestGenerateWithdrawProof(t *testing.T) {
 				return createTestEnygmaPublicValues([]*big.Int{chainID1, chainID2}), nil
 			},
 		}
-
 
 		proofClient := &MockProofAPIClient{
 			CreateWithdrawProofFunc: func(anonymityIndex int, request types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
