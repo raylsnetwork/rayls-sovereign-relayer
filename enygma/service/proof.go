@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -601,13 +602,13 @@ func bytesSliceToBigInts(slices [][]byte) []*big.Int {
 // payment-output scalars the prover needs, before any CTS or prover call.
 func validateWithdrawPaymentOutput(params enygma.WithdrawProofParams) error {
 	if params.PaymentCommitment == nil {
-		return fmt.Errorf("withdraw proof params are missing the payment commitment")
+		return errors.New("withdraw proof params are missing the payment commitment")
 	}
 	if params.PaymentSecretKey == nil {
-		return fmt.Errorf("withdraw proof params are missing the payment secret key")
+		return errors.New("withdraw proof params are missing the payment secret key")
 	}
 	if params.PaymentSalt == nil {
-		return fmt.Errorf("withdraw proof params are missing the payment salt")
+		return errors.New("withdraw proof params are missing the payment salt")
 	}
 	return nil
 }
