@@ -1430,6 +1430,8 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 		breakDeps     func(d *withdrawalTestDeps)
 		wantErr       string
 		wantNoHistory bool
+		// assertSkipped checks that the steps after the failing one never ran.
+		assertSkipped func(t *testing.T, d *withdrawalTestDeps)
 	}{
 		{
 			name: "keys client fails",
@@ -1441,6 +1443,10 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 				}
 			},
 			wantErr: "failed to get key pair",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.commitmentCalc.CalculatePaymentCommitmentCalls())
+				assert.Empty(t, d.batcher.CreateBatchesWithAnonimityCalls())
+			},
 		},
 		{
 			name: "commitment calculation fails",
@@ -1450,6 +1456,10 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 				}
 			},
 			wantErr: "commitment calculation failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.batcher.CreateBatchesWithAnonimityCalls())
+				assert.Empty(t, d.proofGen.GenerateWithdrawProofCalls())
+			},
 		},
 		{
 			name: "batcher fails",
@@ -1461,6 +1471,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 				}
 			},
 			wantErr: "batching failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.proofGen.GenerateWithdrawProofCalls())
+			},
 		},
 		{
 			name: "proof generation fails",
@@ -1472,6 +1485,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 				}
 			},
 			wantErr: "proof generation failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.integrationClient.WithdrawCalls())
+			},
 		},
 		{
 			name: "getting integration address fails",
@@ -1483,6 +1499,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 				}
 			},
 			wantErr: "failed to get integration address",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.integrationClient.WithdrawCalls())
+			},
 		},
 		{
 			name: "Withdraw fails",
@@ -1519,6 +1538,9 @@ func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
 			assert.Contains(t, err.Error(), tc.wantErr)
 			if tc.wantNoHistory {
 				assert.Empty(t, deps.repository.InsertEnygmaHistoryCalls())
+			}
+			if tc.assertSkipped != nil {
+				tc.assertSkipped(t, deps)
 			}
 		})
 	}

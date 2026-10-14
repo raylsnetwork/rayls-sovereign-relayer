@@ -5,6 +5,7 @@ import (
 	"crypto/mlkem"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma/service"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )
@@ -1114,6 +1116,66 @@ func TestHandleEnygmaWithdrawal(t *testing.T) {
 		assert.Equal(t, types.DvpDepositUnspent, calls[1].Status) // Second call should revert to Unspent
 		// Verify withdrawal was NOT executed
 		assert.Equal(t, 0, len(deps.EnygmaHandlerClient.ReceiveWithdrawCalls()))
+	})
+
+	t.Run("reverts deposits to unspent when the payment output does not match", func(t *testing.T) {
+		deps := setupInitiatorDeps()
+		deposit := createTestDvpDeposit("0x1234567890123456789012345678901234567890", big.NewInt(1000))
+
+		deps.CCEndpointClient.GetResourceAddressFunc = func(_ context.Context, resourceId string) (common.Address, error) {
+			return common.HexToAddress("0x1234567890123456789012345678901234567890"), nil
+		}
+		deps.DepositFinder.FindEnygmaDepositsFunc = func(ctx context.Context, userAddress string, tokenAddress string, paymentAmount *big.Int) ([]*types.DvpDeposit, error) {
+			return []*types.DvpDeposit{deposit}, nil
+		}
+		deps.DepositConsolidator.PrepareDepositsForJSProofFunc = func(ctx context.Context, _ string, sourceViewPublicKey []byte, deposits []*types.DvpDeposit) ([]*types.DvpDeposit, error) {
+			return deposits, nil
+		}
+		deps.DvpDepositRepository.BatchUpdateStatusForCommitmentsFunc = func(ctx context.Context, commitments []string, status types.DvpDepositStatus) error {
+			return nil
+		}
+		deps.KeysClient.GetPaymentSpendKeyFunc = func(ctx context.Context, in *keys.GetPaymentSpendKeyRequest, opts ...grpc.CallOption) (*keys.PaymentSpendKeyResponse, error) {
+			return createTestPaymentSpendKey(), nil
+		}
+		deps.DvpProofGenerator.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+			return createTestProofReceipt(), nil
+		}
+		deps.DvpDepositRepository.BatchUpsertNullifiersFunc = func(ctx context.Context, commitmentNullifierMap map[string]string) error {
+			return nil
+		}
+		// A rotated spend key surfaces as a non-retryable payment-output mismatch.
+		deps.Executor.ExecuteEnygmaWithdrawalFunc = func(ctx context.Context, req service.EnygmaWithdrawalRequest) error {
+			return errors.New("validating join-split payment output for withdrawal:" +
+				" join-split payment output 1 does not match withdraw payment commitment 2")
+		}
+		deps.RetryService.RetryOperationFunc = func(ctx context.Context, operationName string, maxRetries int, blockNumber uint64, executeOperation func(ctx context.Context, nextBlockNumber uint64) error) (uint64, error) {
+			if err := executeOperation(ctx, blockNumber); err != nil {
+				return blockNumber, fmt.Errorf("non-retryable error encountered: %w", err)
+			}
+			return blockNumber, nil
+		}
+
+		init := setupInitiator(deps)
+
+		_, err := init.HandleEnygmaWithdrawal(
+			context.Background(),
+			"test-event-id",
+			100,
+			createTestResourceId(),
+			[32]byte{},
+			common.HexToAddress("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+			big.NewInt(1000),
+			common.HexToHash("0xabcd"),
+		)
+
+		require.ErrorContains(t, err, "does not match withdraw payment commitment")
+		require.Len(t, deps.Executor.ExecuteEnygmaWithdrawalCalls(), 1)
+		statusCalls := deps.DvpDepositRepository.BatchUpdateStatusForCommitmentsCalls()
+		require.Len(t, statusCalls, 2)
+		assert.Equal(t, types.DvpDepositLocked, statusCalls[0].Status)
+		assert.Equal(t, types.DvpDepositUnspent, statusCalls[1].Status)
+		assert.Equal(t, []string{deposit.Commitment.String()}, statusCalls[1].Commitments)
+		assert.Empty(t, deps.EnygmaHandlerClient.ReceiveWithdrawCalls())
 	})
 
 	t.Run("returns error if failed to revert deposits to unspent after retry operation fails", func(t *testing.T) {
