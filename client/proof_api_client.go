@@ -359,6 +359,16 @@ func (c *ProofAPIClient) CreateDepositProof(k int, req types.DepositProofRequest
 func (c *ProofAPIClient) CreateWithdrawProof(k int, req types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
 	slog.Info("Creating Withdraw Proof")
 
+	if req.PaymentCommitment == nil || req.PaymentSecretKey == nil || req.PaymentSalt == nil {
+		return types.EnygmaProofResponse{}, fmt.Errorf(
+			"withdraw proof request is missing a payment-output scalar"+
+				" (commitment set: %t, secret key set: %t, salt set: %t)",
+			req.PaymentCommitment != nil,
+			req.PaymentSecretKey != nil,
+			req.PaymentSalt != nil,
+		)
+	}
+
 	// Select endpoint based on k value
 	var endpoint string
 	switch k {
