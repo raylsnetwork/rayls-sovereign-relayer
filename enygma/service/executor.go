@@ -542,8 +542,9 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 // checkPaymentOutput reports whether the join-split receipt's payment output
 // (commitments[0]) is the commitment the withdraw proof will open. The contract
 // rejects the withdrawal otherwise, so a mismatch is caught before proving.
-// ExecuteEnygmaWithdrawal already rejects a nil receipt; the nil check here is
-// defensive only, so this guard never panics if it gains another caller.
+// ExecuteEnygmaWithdrawal already rejects a nil receipt, and the nil
+// commitment check only fires if the calculator breaks its contract by
+// returning (nil, nil); both are defensive, so the guard never panics.
 // A mismatch is deliberately not a retryable error: it cannot heal at a later
 // block, so the withdrawal fails fast and must be re-driven.
 func checkPaymentOutput(jsProof *dvp.ProofReceipt, paymentCommitment *big.Int) error {

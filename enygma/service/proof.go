@@ -184,7 +184,8 @@ func (s *EnygmaProofService) GenerateDepositProof(
 
 // GenerateWithdrawProof builds a withdraw proof that opens the join-split
 // payment output described by params.PaymentCommitment, PaymentSecretKey and
-// PaymentSalt, all of which must be set.
+// PaymentSalt, all of which must be set. ExecuteEnygmaWithdrawal always sets
+// them; the check guards callers that build WithdrawProofParams directly.
 func (s *EnygmaProofService) GenerateWithdrawProof(
 	ctx context.Context,
 	params enygma.WithdrawProofParams,
