@@ -60,8 +60,23 @@ type DvpIntegrationTxRequest struct {
 	DvpIntegrationAddress common.Address
 }
 
+// validate rejects a request missing the proof or block number that Deposit
+// and Withdraw dereference, so a caller bug surfaces as an error, not a panic.
+func (r DvpIntegrationTxRequest) validate() error {
+	if r.Proof == nil {
+		return NewEnygmaDvpIntegrationClientError("dvp integration request is missing its proof")
+	}
+	if r.BlockNumber == nil {
+		return NewEnygmaDvpIntegrationClientError("dvp integration request is missing its block number")
+	}
+	return nil
+}
+
 // Deposit signs and sends a deposit of req.Amount from the Enygma balance into DvP.
 func (c *DvpIntegrationClient) Deposit(ctx context.Context, req DvpIntegrationTxRequest) error {
+	if err := req.validate(); err != nil {
+		return err
+	}
 	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, req.Batches, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to encrypt enygma deposit to dvp batches", err)
@@ -110,6 +125,12 @@ func (c *DvpIntegrationClient) Withdraw(
 	req DvpIntegrationTxRequest,
 	jsProof *dvp.ProofReceipt,
 ) error {
+	if err := req.validate(); err != nil {
+		return err
+	}
+	if jsProof == nil || jsProof.Proof == nil {
+		return NewEnygmaDvpIntegrationClientError("withdraw request is missing its join-split receipt")
+	}
 	encrBatches, err := c.encr.EncryptEnygmaTransferBatches(ctx, req.Batches, req.BlockNumber)
 	if err != nil {
 		return WrapInEnygmaDvpIntegrationClientError("failed to encrypt enygma withdraw from dvp batches", err)
@@ -180,7 +201,8 @@ func (c *DvpIntegrationClient) Withdraw(
 	return nil
 }
 
-// toWithdrawOrDepositProof converts a prover response into the contract's proof struct.
+// toWithdrawOrDepositProof converts a prover response into the contract's proof
+// struct. proof must be non-nil; Deposit and Withdraw check it via validate.
 func toWithdrawOrDepositProof(
 	proof *types.EnygmaProofResponse,
 ) EnygmaDvpIntegration.IEnygmaDvpIntegrationWithdrawOrDepositProof {

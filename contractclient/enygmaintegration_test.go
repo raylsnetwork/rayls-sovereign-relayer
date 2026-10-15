@@ -189,6 +189,75 @@ func TestDvpIntegrationClient_ExecutesViaExecutor(t *testing.T) {
 	}
 }
 
+func TestDvpIntegrationClient_RejectsIncompleteRequests(t *testing.T) {
+	t.Parallel()
+
+	deposit := func(mutate func(*contractclient.DvpIntegrationTxRequest)) func(*contractclient.DvpIntegrationClient) error {
+		return func(c *contractclient.DvpIntegrationClient) error {
+			req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+			mutate(&req)
+			return c.Deposit(context.Background(), req)
+		}
+	}
+	withdraw := func(
+		mutate func(*contractclient.DvpIntegrationTxRequest),
+		jsProof *dvp.ProofReceipt,
+	) func(*contractclient.DvpIntegrationClient) error {
+		return func(c *contractclient.DvpIntegrationClient) error {
+			req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+			mutate(&req)
+			return c.Withdraw(context.Background(), req, jsProof)
+		}
+	}
+	noProof := func(r *contractclient.DvpIntegrationTxRequest) { r.Proof = nil }
+	noBlock := func(r *contractclient.DvpIntegrationTxRequest) { r.BlockNumber = nil }
+	keep := func(*contractclient.DvpIntegrationTxRequest) {}
+
+	tests := []struct {
+		name    string
+		call    func(*contractclient.DvpIntegrationClient) error
+		wantErr string
+	}{
+		{name: "deposit without proof", call: deposit(noProof), wantErr: "missing its proof"},
+		{name: "deposit without block number", call: deposit(noBlock), wantErr: "missing its block number"},
+		{
+			name:    "withdraw without proof",
+			call:    withdraw(noProof, createTestProofReceipt()),
+			wantErr: "missing its proof",
+		},
+		{
+			name:    "withdraw without block number",
+			call:    withdraw(noBlock, createTestProofReceipt()),
+			wantErr: "missing its block number",
+		},
+		{name: "withdraw without receipt", call: withdraw(keep, nil), wantErr: "missing its join-split receipt"},
+		{
+			name:    "withdraw with receipt missing its proof",
+			call:    withdraw(keep, &dvp.ProofReceipt{}),
+			wantErr: "missing its join-split receipt",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			executor := &stubExecutor{}
+			client := contractclient.NewDvpIntegrationClient(
+				executor,
+				&StubDvpIntegrationEncryptor{encryptedBatches: [][]byte{{0xaa}}},
+				&StubZkdvpIntegrationEthClient{},
+			)
+
+			var err error
+			require.NotPanics(t, func() { err = tc.call(client) })
+
+			var clientErr *contractclient.EnygmaDvpIntegrationClientError
+			require.ErrorAs(t, err, &clientErr)
+			assert.ErrorContains(t, err, tc.wantErr)
+			assert.Empty(t, executor.spyExecuteID)
+		})
+	}
+}
+
 func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 	t.Run("wraps encryption errors in EnygmaDvpIntegrationClientError", func(t *testing.T) {
 		wantError := errors.New("encryption failed")

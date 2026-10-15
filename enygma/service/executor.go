@@ -470,6 +470,8 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req Enygma
 		spendKey.PublicKey,
 		req.PaymentSalt,
 		req.Amount,
+		// The Enygma contract address is the token address: the initiator finds
+		// the deposits and builds the join-split output with this same address.
 		req.EnygmaAddress.Hex(),
 	)
 	if err != nil {
