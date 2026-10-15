@@ -103,6 +103,23 @@ func createTestBatches() []*types.EnygmaTransferBatch {
 	}
 }
 
+func testDvpIntegrationTxRequest(
+	batches []*types.EnygmaTransferBatch,
+	blockNumber *big.Int,
+	dvpIntegrationAddress common.Address,
+) contractclient.DvpIntegrationTxRequest {
+	return contractclient.DvpIntegrationTxRequest{
+		ChainEventID:          "test-event-id",
+		Batches:               batches,
+		Proof:                 createTestProof(),
+		BlockNumber:           blockNumber,
+		ChainId:               big.NewInt(1337),
+		ResourceId:            "test-resource-id",
+		Amount:                big.NewInt(1000),
+		DvpIntegrationAddress: dvpIntegrationAddress,
+	}
+}
+
 func createTestProofReceipt() *dvp.ProofReceipt {
 	return &dvp.ProofReceipt{
 		Proof: &dvp.Proof{
@@ -122,34 +139,126 @@ func createTestProofReceipt() *dvp.ProofReceipt {
 	}
 }
 
-func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
-	t.Run("successfully signs deposit via executor", func(t *testing.T) {
-		batches := createTestBatches()
-		proof := createTestProof()
-		blockNumber := big.NewInt(100)
+func TestDvpIntegrationClient_ExecutesViaExecutor(t *testing.T) {
+	t.Parallel()
 
-		address := common.HexToAddress("0x1")
-		executor := &stubExecutor{}
-		encryptor := &StubDvpIntegrationEncryptor{
-			encryptedBatches: [][]byte{{0xaa}, {0xbb}},
+	tests := []struct {
+		name   string
+		call   func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error
+		wantID string
+	}{
+		{
+			name: "deposit",
+			call: func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error {
+				return c.Deposit(context.Background(), testDvpIntegrationTxRequest(batches, blockNumber, address))
+			},
+			wantID: "dvpintegration.Deposit:test-event-id:100",
+		},
+		{
+			name: "withdraw",
+			call: func(c *contractclient.DvpIntegrationClient, batches []*types.EnygmaTransferBatch, blockNumber *big.Int, address common.Address) error {
+				req := testDvpIntegrationTxRequest(batches, blockNumber, address)
+				return c.Withdraw(context.Background(), req, createTestProofReceipt())
+			},
+			wantID: "dvpintegration.Withdraw:test-event-id:100",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			batches := createTestBatches()
+			blockNumber := big.NewInt(100)
+			address := common.HexToAddress("0x1")
+			executor := &stubExecutor{}
+			encryptor := &StubDvpIntegrationEncryptor{
+				encryptedBatches: [][]byte{{0xaa}, {0xbb}},
+			}
+			client := contractclient.NewDvpIntegrationClient(executor, encryptor, &StubZkdvpIntegrationEthClient{})
+
+			err := tc.call(client, batches, blockNumber, address)
+
+			require.NoError(t, err)
+			assert.Equal(t, batches, encryptor.spyBatches)
+			assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
+			assert.Equal(t, address, executor.spyExecuteAddress)
+			// The block number is part of the id so a retry at the next block sends a new tx
+			// instead of replaying CTS's stored verdict for the previous attempt.
+			assert.Equal(t, tc.wantID, executor.spyExecuteID)
+			assert.NotNil(t, executor.spyExecuteCalldata)
+		})
+	}
+}
+
+func TestDvpIntegrationClient_RejectsIncompleteRequests(t *testing.T) {
+	t.Parallel()
+
+	deposit := func(mutate func(*contractclient.DvpIntegrationTxRequest)) func(*contractclient.DvpIntegrationClient) error {
+		return func(c *contractclient.DvpIntegrationClient) error {
+			req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+			mutate(&req)
+			return c.Deposit(context.Background(), req)
 		}
+	}
+	withdraw := func(
+		mutate func(*contractclient.DvpIntegrationTxRequest),
+		jsProof *dvp.ProofReceipt,
+	) func(*contractclient.DvpIntegrationClient) error {
+		return func(c *contractclient.DvpIntegrationClient) error {
+			req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+			mutate(&req)
+			return c.Withdraw(context.Background(), req, jsProof)
+		}
+	}
+	noProof := func(r *contractclient.DvpIntegrationTxRequest) { r.Proof = nil }
+	noBlock := func(r *contractclient.DvpIntegrationTxRequest) { r.BlockNumber = nil }
+	keep := func(*contractclient.DvpIntegrationTxRequest) {}
 
-		client := contractclient.NewDvpIntegrationClient(
-			executor,
-			encryptor,
-			&StubZkdvpIntegrationEthClient{},
-		)
+	tests := []struct {
+		name    string
+		call    func(*contractclient.DvpIntegrationClient) error
+		wantErr string
+	}{
+		{name: "deposit without proof", call: deposit(noProof), wantErr: "missing its proof"},
+		{name: "deposit without block number", call: deposit(noBlock), wantErr: "missing its block number"},
+		{
+			name:    "withdraw without proof",
+			call:    withdraw(noProof, createTestProofReceipt()),
+			wantErr: "missing its proof",
+		},
+		{
+			name:    "withdraw without block number",
+			call:    withdraw(noBlock, createTestProofReceipt()),
+			wantErr: "missing its block number",
+		},
+		{name: "withdraw without receipt", call: withdraw(keep, nil), wantErr: "missing its join-split receipt"},
+		{
+			name:    "withdraw with receipt missing its proof",
+			call:    withdraw(keep, &dvp.ProofReceipt{}),
+			wantErr: "missing its join-split receipt",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			executor := &stubExecutor{}
+			client := contractclient.NewDvpIntegrationClient(
+				executor,
+				&StubDvpIntegrationEncryptor{encryptedBatches: [][]byte{{0xaa}}},
+				&StubZkdvpIntegrationEthClient{},
+			)
 
-		err := client.Deposit(context.Background(), "test-event-id", batches, proof, blockNumber, big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
+			var err error
+			require.NotPanics(t, func() { err = tc.call(client) })
 
-		require.Nil(t, err)
+			var clientErr *contractclient.EnygmaDvpIntegrationClientError
+			require.ErrorAs(t, err, &clientErr)
+			assert.ErrorContains(t, err, tc.wantErr)
+			assert.Empty(t, executor.spyExecuteID)
+		})
+	}
+}
 
-		assert.Equal(t, batches, encryptor.spyBatches)
-		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
-		assert.Equal(t, address, executor.spyExecuteAddress)
-		assert.NotNil(t, executor.spyExecuteCalldata)
-	})
-
+func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 	t.Run("wraps encryption errors in EnygmaDvpIntegrationClientError", func(t *testing.T) {
 		wantError := errors.New("encryption failed")
 
@@ -164,7 +273,8 @@ func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 			&StubZkdvpIntegrationEthClient{},
 		)
 
-		err := client.Deposit(context.Background(), "test-event-id", createTestBatches(), createTestProof(), big.NewInt(100), big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, common.Address{})
+		req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+		err := client.Deposit(context.Background(), req)
 
 		var wrappedErr *contractclient.EnygmaDvpIntegrationClientError
 		require.ErrorAs(t, err, &wrappedErr, "error should be wrapped")
@@ -187,7 +297,8 @@ func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 			&StubZkdvpIntegrationEthClient{},
 		)
 
-		err := client.Deposit(context.Background(), "test-event-id", createTestBatches(), createTestProof(), big.NewInt(100), big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, common.Address{})
+		req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+		err := client.Deposit(context.Background(), req)
 
 		var wrappedErr *contractclient.EnygmaDvpIntegrationClientError
 		require.ErrorAs(t, err, &wrappedErr, "error should be wrapped")
@@ -196,34 +307,6 @@ func TestDvpIntegrationClient_SignDeposit(t *testing.T) {
 }
 
 func TestDvpIntegrationClient_SignWithdraw(t *testing.T) {
-	t.Run("successfully signs withdraw via executor", func(t *testing.T) {
-		batches := createTestBatches()
-		proof := createTestProof()
-		blockNumber := big.NewInt(100)
-		jsProof := createTestProofReceipt()
-
-		address := common.HexToAddress("0x1")
-		executor := &stubExecutor{}
-		encryptor := &StubDvpIntegrationEncryptor{
-			encryptedBatches: [][]byte{{0xaa}, {0xbb}},
-		}
-
-		client := contractclient.NewDvpIntegrationClient(
-			executor,
-			encryptor,
-			&StubZkdvpIntegrationEthClient{},
-		)
-
-		err := client.Withdraw(context.Background(), "test-event-id", batches, proof, blockNumber, jsProof, big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, address)
-
-		require.Nil(t, err)
-
-		assert.Equal(t, batches, encryptor.spyBatches)
-		assert.Equal(t, blockNumber, encryptor.spyBlockNumber)
-		assert.Equal(t, address, executor.spyExecuteAddress)
-		assert.NotNil(t, executor.spyExecuteCalldata)
-	})
-
 	t.Run("wraps encryption errors in EnygmaDvpIntegrationClientError", func(t *testing.T) {
 		wantError := errors.New("encryption failed")
 
@@ -238,7 +321,8 @@ func TestDvpIntegrationClient_SignWithdraw(t *testing.T) {
 			&StubZkdvpIntegrationEthClient{},
 		)
 
-		err := client.Withdraw(context.Background(), "test-event-id", createTestBatches(), createTestProof(), big.NewInt(100), createTestProofReceipt(), big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, common.Address{})
+		req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+		err := client.Withdraw(context.Background(), req, createTestProofReceipt())
 
 		var wrappedErr *contractclient.EnygmaDvpIntegrationClientError
 		require.ErrorAs(t, err, &wrappedErr, "error should be wrapped")
@@ -261,7 +345,8 @@ func TestDvpIntegrationClient_SignWithdraw(t *testing.T) {
 			&StubZkdvpIntegrationEthClient{},
 		)
 
-		err := client.Withdraw(context.Background(), "test-event-id", createTestBatches(), createTestProof(), big.NewInt(100), createTestProofReceipt(), big.NewInt(1337), "test-resource-id", big.NewInt(1000), common.Address{}, common.Hash{}, common.Address{})
+		req := testDvpIntegrationTxRequest(createTestBatches(), big.NewInt(100), common.Address{})
+		err := client.Withdraw(context.Background(), req, createTestProofReceipt())
 
 		var wrappedErr *contractclient.EnygmaDvpIntegrationClientError
 		require.ErrorAs(t, err, &wrappedErr, "error should be wrapped")

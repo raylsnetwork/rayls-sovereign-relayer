@@ -9,6 +9,7 @@ import (
 	"github.com/raylsnetwork/rayls-sovereign-relayer/contracts/EndpointV1"
 	keyspb "github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/dvp"
+	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma/service"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/types"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -1004,7 +1005,7 @@ func (mock *initiatorDepositConsolidatorMock) PrepareDepositsForJSProofCalls() [
 //
 //		// make and configure a mocked handler.initiatorDvpProofGenerator
 //		mockedinitiatorDvpProofGenerator := &initiatorDvpProofGeneratorMock{
-//			GenerateEnygmaJSProofFunc: func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+//			GenerateEnygmaJSProofFunc: func(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 //				panic("mock out the GenerateEnygmaJSProof method")
 //			},
 //		}
@@ -1015,7 +1016,7 @@ func (mock *initiatorDepositConsolidatorMock) PrepareDepositsForJSProofCalls() [
 //	}
 type initiatorDvpProofGeneratorMock struct {
 	// GenerateEnygmaJSProofFunc mocks the GenerateEnygmaJSProof method.
-	GenerateEnygmaJSProofFunc func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProofFunc func(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -1023,53 +1024,29 @@ type initiatorDvpProofGeneratorMock struct {
 		GenerateEnygmaJSProof []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// SourceViewPublicKey is the sourceViewPublicKey argument value.
-			SourceViewPublicKey []byte
-			// NftCommitment is the nftCommitment argument value.
-			NftCommitment *big.Int
-			// DestinationPaymentPublicKey is the destinationPaymentPublicKey argument value.
-			DestinationPaymentPublicKey *big.Int
-			// DestinationSalt is the destinationSalt argument value.
-			DestinationSalt *big.Int
-			// PaymentAmount is the paymentAmount argument value.
-			PaymentAmount *big.Int
-			// TokenAddress is the tokenAddress argument value.
-			TokenAddress string
-			// Deposits is the deposits argument value.
-			Deposits []*types.DvpDeposit
+			// In is the in argument value.
+			In dvp.EnygmaJSProofInput
 		}
 	}
 	lockGenerateEnygmaJSProof sync.RWMutex
 }
 
 // GenerateEnygmaJSProof calls GenerateEnygmaJSProofFunc.
-func (mock *initiatorDvpProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+func (mock *initiatorDvpProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 	if mock.GenerateEnygmaJSProofFunc == nil {
 		panic("initiatorDvpProofGeneratorMock.GenerateEnygmaJSProofFunc: method is nil but initiatorDvpProofGenerator.GenerateEnygmaJSProof was just called")
 	}
 	callInfo := struct {
-		Ctx                         context.Context
-		SourceViewPublicKey         []byte
-		NftCommitment               *big.Int
-		DestinationPaymentPublicKey *big.Int
-		DestinationSalt             *big.Int
-		PaymentAmount               *big.Int
-		TokenAddress                string
-		Deposits                    []*types.DvpDeposit
+		Ctx context.Context
+		In  dvp.EnygmaJSProofInput
 	}{
-		Ctx:                         ctx,
-		SourceViewPublicKey:         sourceViewPublicKey,
-		NftCommitment:               nftCommitment,
-		DestinationPaymentPublicKey: destinationPaymentPublicKey,
-		DestinationSalt:             destinationSalt,
-		PaymentAmount:               paymentAmount,
-		TokenAddress:                tokenAddress,
-		Deposits:                    deposits,
+		Ctx: ctx,
+		In:  in,
 	}
 	mock.lockGenerateEnygmaJSProof.Lock()
 	mock.calls.GenerateEnygmaJSProof = append(mock.calls.GenerateEnygmaJSProof, callInfo)
 	mock.lockGenerateEnygmaJSProof.Unlock()
-	return mock.GenerateEnygmaJSProofFunc(ctx, sourceViewPublicKey, nftCommitment, destinationPaymentPublicKey, destinationSalt, paymentAmount, tokenAddress, deposits)
+	return mock.GenerateEnygmaJSProofFunc(ctx, in)
 }
 
 // GenerateEnygmaJSProofCalls gets all the calls that were made to GenerateEnygmaJSProof.
@@ -1077,24 +1054,12 @@ func (mock *initiatorDvpProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Co
 //
 //	len(mockedinitiatorDvpProofGenerator.GenerateEnygmaJSProofCalls())
 func (mock *initiatorDvpProofGeneratorMock) GenerateEnygmaJSProofCalls() []struct {
-	Ctx                         context.Context
-	SourceViewPublicKey         []byte
-	NftCommitment               *big.Int
-	DestinationPaymentPublicKey *big.Int
-	DestinationSalt             *big.Int
-	PaymentAmount               *big.Int
-	TokenAddress                string
-	Deposits                    []*types.DvpDeposit
+	Ctx context.Context
+	In  dvp.EnygmaJSProofInput
 } {
 	var calls []struct {
-		Ctx                         context.Context
-		SourceViewPublicKey         []byte
-		NftCommitment               *big.Int
-		DestinationPaymentPublicKey *big.Int
-		DestinationSalt             *big.Int
-		PaymentAmount               *big.Int
-		TokenAddress                string
-		Deposits                    []*types.DvpDeposit
+		Ctx context.Context
+		In  dvp.EnygmaJSProofInput
 	}
 	mock.lockGenerateEnygmaJSProof.RLock()
 	calls = mock.calls.GenerateEnygmaJSProof
@@ -1357,7 +1322,7 @@ func (mock *initiatorEnygmaBatcherMock) CreateBatchesWithAnonimityCalls() []stru
 //			ExecuteEnygmaSupplyUpdateFunc: func(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error {
 //				panic("mock out the ExecuteEnygmaSupplyUpdate method")
 //			},
-//			ExecuteEnygmaWithdrawalFunc: func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
+//			ExecuteEnygmaWithdrawalFunc: func(ctx context.Context, req service.EnygmaWithdrawalRequest) error {
 //				panic("mock out the ExecuteEnygmaWithdrawal method")
 //			},
 //		}
@@ -1377,7 +1342,7 @@ type initiatorEnygmaExecutorMock struct {
 	ExecuteEnygmaSupplyUpdateFunc func(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error
 
 	// ExecuteEnygmaWithdrawalFunc mocks the ExecuteEnygmaWithdrawal method.
-	ExecuteEnygmaWithdrawalFunc func(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
+	ExecuteEnygmaWithdrawalFunc func(ctx context.Context, req service.EnygmaWithdrawalRequest) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -1438,24 +1403,8 @@ type initiatorEnygmaExecutorMock struct {
 		ExecuteEnygmaWithdrawal []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ChainEventID is the chainEventID argument value.
-			ChainEventID string
-			// ResourceId is the resourceId argument value.
-			ResourceId string
-			// Amount is the amount argument value.
-			Amount *big.Int
-			// Deposits is the deposits argument value.
-			Deposits []*types.DvpDeposit
-			// BlockNumber is the blockNumber argument value.
-			BlockNumber uint64
-			// EnygmaAddress is the enygmaAddress argument value.
-			EnygmaAddress common.Address
-			// Proof is the proof argument value.
-			Proof *dvp.ProofReceipt
-			// From is the from argument value.
-			From common.Address
-			// TxHash is the txHash argument value.
-			TxHash common.Hash
+			// Req is the req argument value.
+			Req service.EnygmaWithdrawalRequest
 		}
 	}
 	lockExecuteEnygmaCrossTransfer sync.RWMutex
@@ -1637,37 +1586,21 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaSupplyUpdateCalls() []stru
 }
 
 // ExecuteEnygmaWithdrawal calls ExecuteEnygmaWithdrawalFunc.
-func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error {
+func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Context, req service.EnygmaWithdrawalRequest) error {
 	if mock.ExecuteEnygmaWithdrawalFunc == nil {
 		panic("initiatorEnygmaExecutorMock.ExecuteEnygmaWithdrawalFunc: method is nil but initiatorEnygmaExecutor.ExecuteEnygmaWithdrawal was just called")
 	}
 	callInfo := struct {
-		Ctx           context.Context
-		ChainEventID  string
-		ResourceId    string
-		Amount        *big.Int
-		Deposits      []*types.DvpDeposit
-		BlockNumber   uint64
-		EnygmaAddress common.Address
-		Proof         *dvp.ProofReceipt
-		From          common.Address
-		TxHash        common.Hash
+		Ctx context.Context
+		Req service.EnygmaWithdrawalRequest
 	}{
-		Ctx:           ctx,
-		ChainEventID:  chainEventID,
-		ResourceId:    resourceId,
-		Amount:        amount,
-		Deposits:      deposits,
-		BlockNumber:   blockNumber,
-		EnygmaAddress: enygmaAddress,
-		Proof:         proof,
-		From:          from,
-		TxHash:        txHash,
+		Ctx: ctx,
+		Req: req,
 	}
 	mock.lockExecuteEnygmaWithdrawal.Lock()
 	mock.calls.ExecuteEnygmaWithdrawal = append(mock.calls.ExecuteEnygmaWithdrawal, callInfo)
 	mock.lockExecuteEnygmaWithdrawal.Unlock()
-	return mock.ExecuteEnygmaWithdrawalFunc(ctx, chainEventID, resourceId, amount, deposits, blockNumber, enygmaAddress, proof, from, txHash)
+	return mock.ExecuteEnygmaWithdrawalFunc(ctx, req)
 }
 
 // ExecuteEnygmaWithdrawalCalls gets all the calls that were made to ExecuteEnygmaWithdrawal.
@@ -1675,28 +1608,12 @@ func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawal(ctx context.Con
 //
 //	len(mockedinitiatorEnygmaExecutor.ExecuteEnygmaWithdrawalCalls())
 func (mock *initiatorEnygmaExecutorMock) ExecuteEnygmaWithdrawalCalls() []struct {
-	Ctx           context.Context
-	ChainEventID  string
-	ResourceId    string
-	Amount        *big.Int
-	Deposits      []*types.DvpDeposit
-	BlockNumber   uint64
-	EnygmaAddress common.Address
-	Proof         *dvp.ProofReceipt
-	From          common.Address
-	TxHash        common.Hash
+	Ctx context.Context
+	Req service.EnygmaWithdrawalRequest
 } {
 	var calls []struct {
-		Ctx           context.Context
-		ChainEventID  string
-		ResourceId    string
-		Amount        *big.Int
-		Deposits      []*types.DvpDeposit
-		BlockNumber   uint64
-		EnygmaAddress common.Address
-		Proof         *dvp.ProofReceipt
-		From          common.Address
-		TxHash        common.Hash
+		Ctx context.Context
+		Req service.EnygmaWithdrawalRequest
 	}
 	mock.lockExecuteEnygmaWithdrawal.RLock()
 	calls = mock.calls.ExecuteEnygmaWithdrawal

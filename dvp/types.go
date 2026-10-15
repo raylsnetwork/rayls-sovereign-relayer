@@ -41,6 +41,19 @@ type ERC1155JoinSplitProofRequest struct {
 	RevertSalt     *big.Int
 }
 
+// EnygmaJSProofInput holds the inputs for an Enygma join-split proof that
+// spends Deposits into a PaymentAmount output for DestinationPaymentPublicKey
+// (salted with DestinationSalt), returning any change to the sender.
+type EnygmaJSProofInput struct {
+	SourceViewPublicKey         []byte
+	NftCommitment               *big.Int
+	DestinationPaymentPublicKey *big.Int
+	DestinationSalt             *big.Int
+	PaymentAmount               *big.Int
+	TokenAddress                string
+	Deposits                    []*types.DvpDeposit
+}
+
 type EnygmaJoinSplitProofRequest struct {
 	NftCommitment *big.Int
 	ValuesIn      []*big.Int

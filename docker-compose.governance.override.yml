@@ -1,0 +1,14 @@
+# Override applied on top of docker-compose.dev-local.yml when governance is enabled
+# (i.e. without `--no-governance`):
+#   docker compose -f docker-compose.dev-local.yml -f docker-compose.governance.override.yml ...
+#
+# The contracts deploy writes the governance/listener/flagger config into the governance
+# repo's .env and syncs its contracts, but only when GOVERNANCE_ENABLED=true. Keeping these
+# mounts here means --no-governance needs neither ../rayls-sovereign-pnh-governance nor its
+# .env; mounting a missing path would make Docker create it as a root-owned directory.
+services:
+  contracts:
+    volumes:
+      - ../rayls-sovereign-pnh-governance/config:/parfin/rayls-privacy-pnh-governance-api/config
+      - ../rayls-sovereign-pnh-governance/.env:/parfin/rayls-privacy-pnh-governance-api/.env
+      - ../rayls-sovereign-pnh-governance/contracts:/parfin/rayls-privacy-pnh-governance-api/contracts

@@ -42,11 +42,10 @@ type ProofAPIWithdrawRequest struct {
 	BlockNumber               string     `json:"block_number"`
 	Nullifier                 string     `json:"nullifier"`
 	AnonymitySet              []string   `json:"anonymity_set"`
-	Hashes                    []string   `json:"hashes"`
-	SkDeposits                []string   `json:"sk_deposits"`
-	VPerDeposit               []string   `json:"v_per_deposit"`
+	PaymentCommitment         string     `json:"payment_commitment"`
+	PaymentSecretKey          string     `json:"payment_secret_key"`
+	PaymentSalt               string     `json:"payment_salt"`
 	Address                   string     `json:"address"`
-	SaltsIn                   []string   `json:"saltsIn"`
 }
 
 type ProofAPIDepositRequest struct {

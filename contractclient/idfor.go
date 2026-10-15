@@ -14,6 +14,11 @@ import (
 // changes between retries of the same logical operation. CTS uses this id to
 // suppress duplicate SignAndSend calls, so two genuinely different operations
 // must never produce the same id.
+//
+// Calls that RetryOperation re-drives at a new block number (Enygma
+// SupplyUpdate, TransferBatch, Deposit, Withdraw) include that block number
+// as a part: each attempt is a different transaction, so it must get a fresh
+// CTS call rather than a replay of the previous attempt's verdict.
 func IDFor(op string, parts ...string) string {
 	if len(parts) == 0 {
 		return op

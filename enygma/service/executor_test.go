@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/raylsnetwork/rayls-sovereign-relayer/contractclient"
 	keyspb "github.com/raylsnetwork/rayls-sovereign-relayer/cts/gen/proto/keys"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/dvp"
 	"github.com/raylsnetwork/rayls-sovereign-relayer/enygma"
@@ -64,7 +65,6 @@ func executorTestPnChainId() *big.Int {
 func executorTestConfig() service.ExecutorConfig {
 	return service.ExecutorConfig{
 		DefaultContextTimeout: 5 * time.Second,
-		MaxNumberOfJSDeposits: 10,
 	}
 }
 
@@ -772,19 +772,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return nil
 			},
 		}
@@ -829,7 +817,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 		assert.Equal(t, new(big.Int).Neg(amount), history.BalanceChange)
 		assert.Equal(t, new(big.Int).SetUint64(blockNumber), history.BlockNumberPrivateHub)
 		// The integration client should receive the address resolved by the enygma client.
-		assert.Equal(t, integrationAddress, integrationClient.DepositCalls()[0].DvpIntegrationAddress)
+		assert.Equal(t, integrationAddress, integrationClient.DepositCalls()[0].Req.DvpIntegrationAddress)
 	})
 
 	t.Run("returns error when batcher fails", func(t *testing.T) {
@@ -1142,19 +1130,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return errors.New("deposit failed")
 			},
 		}
@@ -1235,19 +1211,7 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 			},
 		}
 		integrationClient := &ExecutorDvpIntegrationClientMock{
-			DepositFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+			DepositFunc: func(context.Context, contractclient.DvpIntegrationTxRequest) error {
 				return nil
 			},
 		}
@@ -1284,714 +1248,391 @@ func TestEnygmaExecutor_ExecuteEnygmaDeposit(t *testing.T) {
 	})
 }
 
-func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
-	t.Run("successfully executes withdrawal", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		conf.MaxNumberOfJSDeposits = 2
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-		toChainId := big.NewInt(2)
-		senderRFactor := big.NewInt(456)
-		integrationAddress := common.HexToAddress("0xintegration5678")
+// executorTestPaymentCommitmentCalculator returns a calculator whose payment
+// commitment matches executorTestWithdrawalRequest's join-split payment output.
+func executorTestPaymentCommitmentCalculator() *executorCommitmentCalculatorMock {
+	return &executorCommitmentCalculatorMock{
+		CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
+			return big.NewInt(250), nil
+		},
+	}
+}
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+// executorTestWithdrawalRequest returns a withdrawal whose join-split payment
+// output (commitments[0]) is 250, the commitment the calculator mocks return.
+func executorTestWithdrawalRequest() service.EnygmaWithdrawalRequest {
+	return service.EnygmaWithdrawalRequest{
+		ChainEventID:    "test-batch-id",
+		ResourceId:      executorTestResourceId(),
+		Amount:          executorTestAmount(),
+		PaymentSalt:     big.NewInt(1),
+		BlockNumber:     executorTestBlockNumber(),
+		EnygmaAddress:   executorTestEnygmaAddress(),
+		JSProof:         &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
+		WithdrawingUser: executorTestFromAddress(),
+		TxHash:          executorTestTxHash(),
+	}
+}
 
-		jsProof := &dvp.ProofReceipt{}
+// withdrawalTestDeps holds the executor's collaborators for withdrawal tests,
+// each wired for a successful withdrawal; a test overrides only what it breaks.
+type withdrawalTestDeps struct {
+	batcher           *executorEnygmaBatcherMock
+	proofGen          *executorProofGeneratorMock
+	repository        *executorEnygmaHistoryRepositoryMock
+	keysClient        *executorKeysClientMock
+	enygmaClient      *executorEnygmaClientMock
+	integrationClient *ExecutorDvpIntegrationClientMock
+	commitmentCalc    *executorCommitmentCalculatorMock
+}
 
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
+const withdrawalTestIntegrationAddress = "0xintegration5678"
+
+func withdrawalTestRFactor() *big.Int { return big.NewInt(456) }
+
+func newWithdrawalTestDeps() *withdrawalTestDeps {
+	return &withdrawalTestDeps{
+		batcher: &executorEnygmaBatcherMock{
 			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
+				context.Context, string, *big.Int, map[string][]*types.EnygmaTransferBatchTx,
 			) ([]*types.EnygmaTransferBatch, error) {
 				return []*types.EnygmaTransferBatch{
-					{ToChainID: plChainId},
-					{ToChainID: toChainId},
+					{ToChainID: executorTestPnChainId()},
+					{ToChainID: big.NewInt(2)},
 				}, nil
 			},
-		}
-		proofGen := &executorProofGeneratorMock{
+		},
+		proofGen: &executorProofGeneratorMock{
 			GenerateWithdrawProofFunc: func(
-				ctx context.Context,
-				params enygma.WithdrawProofParams,
+				context.Context, enygma.WithdrawProofParams,
 			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositCommitments))
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositSecretKeys))
-				assert.Equal(t, conf.MaxNumberOfJSDeposits, len(params.DepositAmounts))
-				assert.Equal(t, 2, len(params.Batches))
-				assert.Equal(t, resourceId, params.ResourceId)
-				assert.Equal(t, amount, params.SenderAmount)
-				assert.Equal(t, new(big.Int).SetUint64(blockNumber), params.BlockNumber)
-				assert.Equal(t, enygmaAddress, params.TokenAddress)
-				return &types.EnygmaProofResponse{}, []*types.Point{}, []*big.Int{
-					senderRFactor,
-					big.NewInt(789),
-				}, []*big.Int{}, nil
+				rValues := []*big.Int{withdrawalTestRFactor(), big.NewInt(789)}
+				return &types.EnygmaProofResponse{}, []*types.Point{}, rValues, []*big.Int{}, nil
 			},
-		}
-		repository := &executorEnygmaHistoryRepositoryMock{
-			InsertEnygmaHistoryFunc: func(ctx context.Context, history types.EnygmaHistory) error {
+		},
+		repository: &executorEnygmaHistoryRepositoryMock{
+			InsertEnygmaHistoryFunc: func(context.Context, types.EnygmaHistory) error {
 				return nil
 			},
-		}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{
-			GetDvpIntegrationContractAddressFunc: func(_ context.Context, tokenAddress common.Address) (common.Address, error) {
-				return integrationAddress, nil
+		},
+		keysClient: successKeysClient(),
+		enygmaClient: &executorEnygmaClientMock{
+			GetDvpIntegrationContractAddressFunc: func(context.Context, common.Address) (common.Address, error) {
+				return common.HexToAddress(withdrawalTestIntegrationAddress), nil
 			},
-		}
-		integrationClient := &ExecutorDvpIntegrationClientMock{
-			WithdrawFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				jsProof *dvp.ProofReceipt,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
+		},
+		integrationClient: &ExecutorDvpIntegrationClientMock{
+			WithdrawFunc: func(context.Context, contractclient.DvpIntegrationTxRequest, *dvp.ProofReceipt) error {
 				return nil
 			},
-		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
+		},
+		commitmentCalc: executorTestPaymentCommitmentCalculator(),
+	}
+}
+
+func (d *withdrawalTestDeps) executor() *service.EnygmaExecutor {
+	return service.NewEnygmaExecutor(
+		executorTestConfig(),
+		&testutils.MockTracer{},
+		d.batcher,
+		d.proofGen,
+		d.repository,
+		d.keysClient,
+		d.enygmaClient,
+		d.integrationClient,
+		d.commitmentCalc,
+		executorTestPnChainId(),
+	)
+}
+
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal(t *testing.T) {
+	t.Parallel()
+
+	deps := newWithdrawalTestDeps()
+
+	err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), executorTestWithdrawalRequest())
+
+	require.NoError(t, err)
+	assert.Len(t, deps.batcher.CreateBatchesWithAnonimityCalls(), 1)
+	assert.Len(t, deps.keysClient.GetPaymentSpendKeyCalls(), 1)
+	assert.Len(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls(), 1)
+
+	require.Len(t, deps.proofGen.GenerateWithdrawProofCalls(), 1)
+	params := deps.proofGen.GenerateWithdrawProofCalls()[0].Params
+	blockNumber := new(big.Int).SetUint64(executorTestBlockNumber())
+	assert.Equal(t, big.NewInt(250), params.PaymentCommitment)
+	assert.Equal(t, big.NewInt(1), params.PaymentSalt)
+	assert.NotNil(t, params.PaymentSecretKey)
+	assert.Len(t, params.Batches, 2)
+	assert.Equal(t, executorTestResourceId(), params.ResourceId)
+	assert.Equal(t, executorTestAmount(), params.SenderAmount)
+	assert.Equal(t, blockNumber, params.BlockNumber)
+	assert.Equal(t, executorTestEnygmaAddress(), params.TokenAddress)
+
+	require.Len(t, deps.integrationClient.WithdrawCalls(), 1)
+	assert.Equal(t,
+		common.HexToAddress(withdrawalTestIntegrationAddress),
+		deps.integrationClient.WithdrawCalls()[0].Req.DvpIntegrationAddress,
+	)
+
+	require.Len(t, deps.repository.InsertEnygmaHistoryCalls(), 1)
+	history := deps.repository.InsertEnygmaHistoryCalls()[0].History
+	assert.Equal(t, types.EnygmaWithdrawFromDvp, history.EventType)
+	assert.Equal(t, executorTestPnChainId(), history.FromChainId)
+	assert.Equal(t, withdrawalTestRFactor(), history.RFactor)
+	assert.Equal(t, executorTestAmount(), history.BalanceChange)
+	assert.Equal(t, blockNumber, history.BlockNumberPrivateHub)
+}
+
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_Errors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		breakDeps     func(d *withdrawalTestDeps)
+		wantErr       string
+		wantNoHistory bool
+		// assertSkipped checks that the steps after the failing one never ran.
+		assertSkipped func(t *testing.T, d *withdrawalTestDeps)
+	}{
+		{
+			name: "keys client fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.keysClient.GetPaymentSpendKeyFunc = func(
+					context.Context, *keyspb.GetPaymentSpendKeyRequest, ...grpc.CallOption,
+				) (*keyspb.PaymentSpendKeyResponse, error) {
+					return nil, errors.New("failed to get key pair")
+				}
 			},
-		}
-
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.NoError(t, err)
-		assert.Len(t, batcher.CreateBatchesWithAnonimityCalls(), 1)
-		assert.Len(t, proofGen.GenerateWithdrawProofCalls(), 1)
-		assert.Len(t, keysClient.GetPaymentSpendKeyCalls(), 1)
-		assert.Len(t, commitmentCalc.CalculatePaymentCommitmentCalls(), 1)
-		assert.Len(t, integrationClient.WithdrawCalls(), 1)
-		require.Len(t, repository.InsertEnygmaHistoryCalls(), 1)
-		history := repository.InsertEnygmaHistoryCalls()[0].History
-		assert.Equal(t, types.EnygmaWithdrawFromDvp, history.EventType)
-		assert.Equal(t, plChainId, history.FromChainId)
-		assert.Equal(t, senderRFactor, history.RFactor)
-		assert.Equal(t, amount, history.BalanceChange)
-		assert.Equal(t, new(big.Int).SetUint64(blockNumber), history.BlockNumberPrivateHub)
-		assert.Equal(t, integrationAddress, integrationClient.WithdrawCalls()[0].DvpIntegrationAddress)
-	})
-
-	t.Run("returns error when keys client fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
+			wantErr: "failed to get key pair",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.commitmentCalc.CalculatePaymentCommitmentCalls())
+				assert.Empty(t, d.batcher.CreateBatchesWithAnonimityCalls())
 			},
-		}
-
-		jsProof := &dvp.ProofReceipt{}
-
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{}
-		proofGen := &executorProofGeneratorMock{}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := &executorKeysClientMock{
-			GetPaymentSpendKeyFunc: func(
-				ctx context.Context,
-				in *keyspb.GetPaymentSpendKeyRequest,
-				opts ...grpc.CallOption,
-			) (*keyspb.PaymentSpendKeyResponse, error) {
-				return nil, errors.New("failed to get key pair")
+		},
+		{
+			name: "commitment calculation fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.commitmentCalc.CalculatePaymentCommitmentFunc = func(_, _, _ *big.Int, _ string) (*big.Int, error) {
+					return nil, errors.New("commitment calculation failed")
+				}
 			},
-		}
-		enygmaClient := &executorEnygmaClientMock{}
-		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{}
-
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get key pair")
-	})
-
-	t.Run("returns error when commitment calculation fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
+			wantErr: "commitment calculation failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.batcher.CreateBatchesWithAnonimityCalls())
+				assert.Empty(t, d.proofGen.GenerateWithdrawProofCalls())
 			},
-		}
-
-		jsProof := &dvp.ProofReceipt{}
-
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{}
-		proofGen := &executorProofGeneratorMock{}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{}
-		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return nil, errors.New("commitment calculation failed")
+		},
+		{
+			name: "batcher fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.batcher.CreateBatchesWithAnonimityFunc = func(
+					context.Context, string, *big.Int, map[string][]*types.EnygmaTransferBatchTx,
+				) ([]*types.EnygmaTransferBatch, error) {
+					return nil, errors.New("batching failed")
+				}
 			},
-		}
-
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "commitment calculation failed")
-	})
-
-	t.Run("returns error when batcher fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
+			wantErr: "batching failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.proofGen.GenerateWithdrawProofCalls())
 			},
-		}
-
-		jsProof := &dvp.ProofReceipt{}
-
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
-			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
-			) ([]*types.EnygmaTransferBatch, error) {
-				return nil, errors.New("batching failed")
+		},
+		{
+			name: "proof generation fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.proofGen.GenerateWithdrawProofFunc = func(
+					context.Context, enygma.WithdrawProofParams,
+				) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
+					return nil, nil, nil, nil, errors.New("proof generation failed")
+				}
 			},
-		}
-		proofGen := &executorProofGeneratorMock{}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{}
-		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
+			wantErr: "proof generation failed",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.integrationClient.WithdrawCalls())
 			},
-		}
-
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "batching failed")
-	})
-
-	t.Run("returns error when proof generation fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
+		},
+		{
+			name: "getting integration address fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.enygmaClient.GetDvpIntegrationContractAddressFunc = func(
+					context.Context, common.Address,
+				) (common.Address, error) {
+					return common.Address{}, errors.New("failed to get integration address")
+				}
 			},
-		}
-
-		jsProof := &dvp.ProofReceipt{}
-
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
-			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
-			) ([]*types.EnygmaTransferBatch, error) {
-				return []*types.EnygmaTransferBatch{}, nil
+			wantErr: "failed to get integration address",
+			assertSkipped: func(t *testing.T, d *withdrawalTestDeps) {
+				assert.Empty(t, d.integrationClient.WithdrawCalls())
 			},
-		}
-		proofGen := &executorProofGeneratorMock{
-			GenerateWithdrawProofFunc: func(
-				ctx context.Context,
-				params enygma.WithdrawProofParams,
-			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				return nil, nil, nil, nil, errors.New("proof generation failed")
+		},
+		{
+			name: "Withdraw fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.integrationClient.WithdrawFunc = func(context.Context, contractclient.DvpIntegrationTxRequest, *dvp.ProofReceipt) error {
+					return errors.New("withdrawal failed")
+				}
 			},
-		}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{}
-		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
+			wantErr:       "withdrawal failed",
+			wantNoHistory: true,
+		},
+		{
+			name: "repository insertion fails",
+			breakDeps: func(d *withdrawalTestDeps) {
+				d.repository.InsertEnygmaHistoryFunc = func(context.Context, types.EnygmaHistory) error {
+					return errors.New("database error")
+				}
 			},
-		}
+			wantErr: "database error",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			deps := newWithdrawalTestDeps()
+			tc.breakDeps(deps)
 
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
+			err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), executorTestWithdrawalRequest())
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+			if tc.wantNoHistory {
+				assert.Empty(t, deps.repository.InsertEnygmaHistoryCalls())
+			}
+			if tc.assertSkipped != nil {
+				tc.assertSkipped(t, deps)
+			}
+		})
+	}
+}
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "proof generation failed")
-	})
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MissingRequestFields(t *testing.T) {
+	t.Parallel()
 
-	t.Run("returns error when getting integration address fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
+	tests := []struct {
+		name    string
+		mutate  func(req *service.EnygmaWithdrawalRequest)
+		wantErr string
+	}{
+		{
+			name:    "nil amount",
+			mutate:  func(req *service.EnygmaWithdrawalRequest) { req.Amount = nil },
+			wantErr: "withdrawal request is missing its amount",
+		},
+		{
+			name:    "nil payment salt",
+			mutate:  func(req *service.EnygmaWithdrawalRequest) { req.PaymentSalt = nil },
+			wantErr: "withdrawal request is missing its payment salt",
+		},
+		{
+			name:    "nil join-split receipt",
+			mutate:  func(req *service.EnygmaWithdrawalRequest) { req.JSProof = nil },
+			wantErr: "withdrawal request is missing its join-split receipt",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			deps := newWithdrawalTestDeps()
+			req := executorTestWithdrawalRequest()
+			tc.mutate(&req)
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
-		jsProof := &dvp.ProofReceipt{}
+			err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), req)
 
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
-			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
-			) ([]*types.EnygmaTransferBatch, error) {
-				return []*types.EnygmaTransferBatch{}, nil
-			},
-		}
-		proofGen := &executorProofGeneratorMock{
-			GenerateWithdrawProofFunc: func(
-				ctx context.Context,
-				params enygma.WithdrawProofParams,
-			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				return &types.EnygmaProofResponse{}, []*types.Point{}, []*big.Int{}, []*big.Int{}, nil
-			},
-		}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{
-			GetDvpIntegrationContractAddressFunc: func(_ context.Context, tokenAddress common.Address) (common.Address, error) {
-				return common.Address{}, errors.New("failed to get integration address")
-			},
-		}
-		integrationClient := &ExecutorDvpIntegrationClientMock{}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+			require.Error(t, err)
+			assert.EqualError(t, err, tc.wantErr)
+			assert.Empty(t, deps.keysClient.GetPaymentSpendKeyCalls())
+			assert.Empty(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls())
+			assert.Empty(t, deps.proofGen.GenerateWithdrawProofCalls())
+		})
+	}
+}
 
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_PaymentOutput(t *testing.T) {
+	t.Parallel()
 
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
+	tests := []struct {
+		name          string
+		receipt       *dvp.ProofReceipt
+		nilCommitment bool
+		wantErr       string
+	}{
+		{
+			name:          "calculator returns a nil payment commitment",
+			receipt:       &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(250), big.NewInt(0)}},
+			nilCommitment: true,
+			wantErr:       "calculated withdraw payment commitment is nil",
+		},
+		{
+			name:    "receipt payment output differs from the withdrawn amount's commitment",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(251), big.NewInt(0)}},
+			wantErr: "does not match withdraw payment commitment",
+		},
+		{
+			name:    "change output in place of the payment output",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{big.NewInt(0), big.NewInt(250)}},
+			wantErr: "does not match withdraw payment commitment",
+		},
+		{
+			name:    "receipt without outputs",
+			receipt: &dvp.ProofReceipt{},
+			wantErr: "join-split receipt has no payment output",
+		},
+		{
+			name:    "receipt with nil payment output",
+			receipt: &dvp.ProofReceipt{Commitments: []*big.Int{nil}},
+			wantErr: "join-split receipt has no payment output",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			deps := newWithdrawalTestDeps()
+			if tc.nilCommitment {
+				deps.commitmentCalc.CalculatePaymentCommitmentFunc = func(_, _, _ *big.Int, _ string) (*big.Int, error) {
+					return nil, nil
+				}
+			}
+			req := executorTestWithdrawalRequest()
+			req.JSProof = tc.receipt
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get integration address")
-	})
+			err := deps.executor().ExecuteEnygmaWithdrawal(context.Background(), req)
 
-	t.Run("returns error when Withdraw fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+			// Fails before batching or proving.
+			assert.Empty(t, deps.batcher.CreateBatchesWithAnonimityCalls())
+			assert.Empty(t, deps.proofGen.GenerateWithdrawProofCalls())
+		})
+	}
+}
 
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
+// A payment-output mismatch (e.g. the spend key rotated after the join-split
+// was built) cannot heal at a later block, so RetryOperation must surface it
+// at once instead of burning every retry; the initiator then reverts the
+// deposits to Unspent so the withdrawal can be re-driven.
+func TestEnygmaExecutor_ExecuteEnygmaWithdrawal_MismatchIsNotRetried(t *testing.T) {
+	t.Parallel()
 
-		jsProof := &dvp.ProofReceipt{}
+	deps := newWithdrawalTestDeps()
+	deps.commitmentCalc.CalculatePaymentCommitmentFunc = func(_, _, _ *big.Int, _ string) (*big.Int, error) {
+		return big.NewInt(999), nil
+	}
+	blockWaiter := &MockRetryBlockWaiter{
+		WaitForBlockFunc: func(_ context.Context, target uint64) (uint64, error) { return target + 1, nil },
+	}
+	retry := service.NewRetryService(&testutils.MockTracer{}, blockWaiter)
+	executor := deps.executor()
 
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
-			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
-			) ([]*types.EnygmaTransferBatch, error) {
-				return []*types.EnygmaTransferBatch{}, nil
-			},
-		}
-		proofGen := &executorProofGeneratorMock{
-			GenerateWithdrawProofFunc: func(
-				ctx context.Context,
-				params enygma.WithdrawProofParams,
-			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				return &types.EnygmaProofResponse{}, []*types.Point{}, []*big.Int{}, []*big.Int{}, nil
-			},
-		}
-		repository := &executorEnygmaHistoryRepositoryMock{}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{
-			GetDvpIntegrationContractAddressFunc: func(_ context.Context, tokenAddress common.Address) (common.Address, error) {
-				return common.HexToAddress("0xintegration5678"), nil
-			},
-		}
-		integrationClient := &ExecutorDvpIntegrationClientMock{
-			WithdrawFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				jsProof *dvp.ProofReceipt,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
-				return errors.New("withdrawal failed")
-			},
-		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
+	_, err := retry.RetryOperation(context.Background(), "withdrawal", 30, executorTestBlockNumber(),
+		func(ctx context.Context, nextBlockNumber uint64) error {
+			req := executorTestWithdrawalRequest()
+			req.BlockNumber = nextBlockNumber
+			return executor.ExecuteEnygmaWithdrawal(ctx, req)
+		},
+	)
 
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "withdrawal failed")
-		assert.Empty(t, repository.InsertEnygmaHistoryCalls())
-	})
-
-	t.Run("returns error when repository insertion fails", func(t *testing.T) {
-		ctx := context.Background()
-		conf := executorTestConfig()
-		resourceId := executorTestResourceId()
-		blockNumber := executorTestBlockNumber()
-		enygmaAddress := executorTestEnygmaAddress()
-		amount := executorTestAmount()
-		txHash := executorTestTxHash()
-		fromAddress := executorTestFromAddress()
-		plChainId := executorTestPnChainId()
-
-		deposits := []*types.DvpDeposit{
-			{
-				Salt:         big.NewInt(1),
-				TokenAmount:  big.NewInt(500),
-				TokenAddress: "0xtoken1",
-			},
-		}
-
-		jsProof := &dvp.ProofReceipt{}
-
-		tracer := &testutils.MockTracer{}
-		batcher := &executorEnygmaBatcherMock{
-			CreateBatchesWithAnonimityFunc: func(
-				ctx context.Context,
-				resourceId string,
-				blockNumber *big.Int,
-				txsByChainID map[string][]*types.EnygmaTransferBatchTx,
-			) ([]*types.EnygmaTransferBatch, error) {
-				return []*types.EnygmaTransferBatch{}, nil
-			},
-		}
-		proofGen := &executorProofGeneratorMock{
-			GenerateWithdrawProofFunc: func(
-				ctx context.Context,
-				params enygma.WithdrawProofParams,
-			) (*types.EnygmaProofResponse, []*types.Point, []*big.Int, []*big.Int, error) {
-				return &types.EnygmaProofResponse{}, []*types.Point{}, []*big.Int{}, []*big.Int{}, nil
-			},
-		}
-		repository := &executorEnygmaHistoryRepositoryMock{
-			InsertEnygmaHistoryFunc: func(ctx context.Context, history types.EnygmaHistory) error {
-				return errors.New("database error")
-			},
-		}
-		keysClient := successKeysClient()
-		enygmaClient := &executorEnygmaClientMock{
-			GetDvpIntegrationContractAddressFunc: func(_ context.Context, tokenAddress common.Address) (common.Address, error) {
-				return common.HexToAddress("0xintegration5678"), nil
-			},
-		}
-		integrationClient := &ExecutorDvpIntegrationClientMock{
-			WithdrawFunc: func(
-				ctx context.Context,
-				_ string,
-				batches []*types.EnygmaTransferBatch,
-				proof *types.EnygmaProofResponse,
-				blockNumber *big.Int,
-				jsProof *dvp.ProofReceipt,
-				chainId *big.Int,
-				resourceId string,
-				amount *big.Int,
-				from common.Address,
-				sourceTxHash common.Hash,
-				dvpIntegrationAddress common.Address,
-			) error {
-				return nil
-			},
-		}
-		commitmentCalc := &executorCommitmentCalculatorMock{
-			CalculatePaymentCommitmentFunc: func(spendPK, salt, paymentAmount *big.Int, tokenAddress string) (*big.Int, error) {
-				return big.NewInt(250), nil
-			},
-		}
-
-		executor := service.NewEnygmaExecutor(
-			conf,
-			tracer,
-			batcher,
-			proofGen,
-			repository,
-			keysClient,
-			enygmaClient,
-			integrationClient,
-			commitmentCalc,
-			plChainId,
-		)
-
-		err := executor.ExecuteEnygmaWithdrawal(
-			ctx,
-			"test-batch-id",
-			resourceId,
-			amount,
-			deposits,
-			blockNumber,
-			enygmaAddress,
-			jsProof,
-			fromAddress,
-			txHash,
-		)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "database error")
-	})
+	require.ErrorContains(t, err, "non-retryable error encountered")
+	assert.ErrorContains(t, err, "does not match withdraw payment commitment")
+	assert.Len(t, deps.commitmentCalc.CalculatePaymentCommitmentCalls(), 1)
+	assert.Empty(t, blockWaiter.WaitForBlockCalls.Calls)
 }

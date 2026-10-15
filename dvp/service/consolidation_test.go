@@ -77,7 +77,7 @@ func newConsolidationFixture() *consolidationFixture {
 					testdata.WithCommitments(big.NewInt(888)),
 				), nil
 			},
-			GenerateEnygmaJSProofFunc: func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+			GenerateEnygmaJSProofFunc: func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 				return testdata.NewProofReceipt(
 					testdata.WithNullifiers(big.NewInt(1)),
 					testdata.WithCommitments(big.NewInt(888)),
@@ -351,7 +351,7 @@ func TestConsolidateEnygmaDeposits(t *testing.T) {
 
 	t.Run("returns error when proof generation fails", func(t *testing.T) {
 		f := newConsolidationFixture()
-		f.proofService.GenerateEnygmaJSProofFunc = func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+		f.proofService.GenerateEnygmaJSProofFunc = func(context.Context, dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 			return nil, errors.New("proof generation failed")
 		}
 

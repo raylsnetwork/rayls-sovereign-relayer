@@ -32,15 +32,14 @@ type DepositProofParams struct {
 
 // WithdrawProofParams contains parameters specific to withdraw proof generation
 type WithdrawProofParams struct {
-	ResourceId         string
-	AnonymityIndex     int
-	PublicValues       *types.EnygmaPublicValues
-	SenderAmount       *big.Int
-	BlockNumber        *big.Int
-	Batches            []*types.EnygmaTransferBatch
-	TokenAddress       common.Address
-	DepositCommitments []*big.Int
-	DepositSecretKeys  []*big.Int
-	DepositAmounts     []*big.Int
-	DepositSalts       []*big.Int
+	ResourceId        string
+	AnonymityIndex    int
+	PublicValues      *types.EnygmaPublicValues
+	SenderAmount      *big.Int
+	BlockNumber       *big.Int
+	Batches           []*types.EnygmaTransferBatch
+	TokenAddress      common.Address
+	PaymentCommitment *big.Int
+	PaymentSecretKey  *big.Int
+	PaymentSalt       *big.Int
 }

@@ -2018,7 +2018,7 @@ func (mock *receiverCommitmentCalculatorMock) CalculatePaymentCommitmentCalls() 
 //			GenerateERC1155JSProofFunc: func(ctx context.Context, sourceViewPublicKey []byte, paymentCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, userAddress string, tokenAddress string, tokenId string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
 //				panic("mock out the GenerateERC1155JSProof method")
 //			},
-//			GenerateEnygmaJSProofFunc: func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+//			GenerateEnygmaJSProofFunc: func(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 //				panic("mock out the GenerateEnygmaJSProof method")
 //			},
 //			GenerateOwnershipProofFunc: func(ctx context.Context, sourceViewPublicKey []byte, paymentCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, deposit *types.DvpDeposit) (*dvp.ProofReceipt, error) {
@@ -2035,7 +2035,7 @@ type receiverProofGeneratorMock struct {
 	GenerateERC1155JSProofFunc func(ctx context.Context, sourceViewPublicKey []byte, paymentCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, userAddress string, tokenAddress string, tokenId string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error)
 
 	// GenerateEnygmaJSProofFunc mocks the GenerateEnygmaJSProof method.
-	GenerateEnygmaJSProofFunc func(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProofFunc func(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 
 	// GenerateOwnershipProofFunc mocks the GenerateOwnershipProof method.
 	GenerateOwnershipProofFunc func(ctx context.Context, sourceViewPublicKey []byte, paymentCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, deposit *types.DvpDeposit) (*dvp.ProofReceipt, error)
@@ -2069,20 +2069,8 @@ type receiverProofGeneratorMock struct {
 		GenerateEnygmaJSProof []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// SourceViewPublicKey is the sourceViewPublicKey argument value.
-			SourceViewPublicKey []byte
-			// NftCommitment is the nftCommitment argument value.
-			NftCommitment *big.Int
-			// DestinationPaymentPublicKey is the destinationPaymentPublicKey argument value.
-			DestinationPaymentPublicKey *big.Int
-			// DestinationSalt is the destinationSalt argument value.
-			DestinationSalt *big.Int
-			// PaymentAmount is the paymentAmount argument value.
-			PaymentAmount *big.Int
-			// TokenAddress is the tokenAddress argument value.
-			TokenAddress string
-			// Deposits is the deposits argument value.
-			Deposits []*types.DvpDeposit
+			// In is the in argument value.
+			In dvp.EnygmaJSProofInput
 		}
 		// GenerateOwnershipProof holds details about calls to the GenerateOwnershipProof method.
 		GenerateOwnershipProof []struct {
@@ -2174,33 +2162,21 @@ func (mock *receiverProofGeneratorMock) GenerateERC1155JSProofCalls() []struct {
 }
 
 // GenerateEnygmaJSProof calls GenerateEnygmaJSProofFunc.
-func (mock *receiverProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Context, sourceViewPublicKey []byte, nftCommitment *big.Int, destinationPaymentPublicKey *big.Int, destinationSalt *big.Int, paymentAmount *big.Int, tokenAddress string, deposits []*types.DvpDeposit) (*dvp.ProofReceipt, error) {
+func (mock *receiverProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error) {
 	if mock.GenerateEnygmaJSProofFunc == nil {
 		panic("receiverProofGeneratorMock.GenerateEnygmaJSProofFunc: method is nil but receiverProofGenerator.GenerateEnygmaJSProof was just called")
 	}
 	callInfo := struct {
-		Ctx                         context.Context
-		SourceViewPublicKey         []byte
-		NftCommitment               *big.Int
-		DestinationPaymentPublicKey *big.Int
-		DestinationSalt             *big.Int
-		PaymentAmount               *big.Int
-		TokenAddress                string
-		Deposits                    []*types.DvpDeposit
+		Ctx context.Context
+		In  dvp.EnygmaJSProofInput
 	}{
-		Ctx:                         ctx,
-		SourceViewPublicKey:         sourceViewPublicKey,
-		NftCommitment:               nftCommitment,
-		DestinationPaymentPublicKey: destinationPaymentPublicKey,
-		DestinationSalt:             destinationSalt,
-		PaymentAmount:               paymentAmount,
-		TokenAddress:                tokenAddress,
-		Deposits:                    deposits,
+		Ctx: ctx,
+		In:  in,
 	}
 	mock.lockGenerateEnygmaJSProof.Lock()
 	mock.calls.GenerateEnygmaJSProof = append(mock.calls.GenerateEnygmaJSProof, callInfo)
 	mock.lockGenerateEnygmaJSProof.Unlock()
-	return mock.GenerateEnygmaJSProofFunc(ctx, sourceViewPublicKey, nftCommitment, destinationPaymentPublicKey, destinationSalt, paymentAmount, tokenAddress, deposits)
+	return mock.GenerateEnygmaJSProofFunc(ctx, in)
 }
 
 // GenerateEnygmaJSProofCalls gets all the calls that were made to GenerateEnygmaJSProof.
@@ -2208,24 +2184,12 @@ func (mock *receiverProofGeneratorMock) GenerateEnygmaJSProof(ctx context.Contex
 //
 //	len(mockedreceiverProofGenerator.GenerateEnygmaJSProofCalls())
 func (mock *receiverProofGeneratorMock) GenerateEnygmaJSProofCalls() []struct {
-	Ctx                         context.Context
-	SourceViewPublicKey         []byte
-	NftCommitment               *big.Int
-	DestinationPaymentPublicKey *big.Int
-	DestinationSalt             *big.Int
-	PaymentAmount               *big.Int
-	TokenAddress                string
-	Deposits                    []*types.DvpDeposit
+	Ctx context.Context
+	In  dvp.EnygmaJSProofInput
 } {
 	var calls []struct {
-		Ctx                         context.Context
-		SourceViewPublicKey         []byte
-		NftCommitment               *big.Int
-		DestinationPaymentPublicKey *big.Int
-		DestinationSalt             *big.Int
-		PaymentAmount               *big.Int
-		TokenAddress                string
-		Deposits                    []*types.DvpDeposit
+		Ctx context.Context
+		In  dvp.EnygmaJSProofInput
 	}
 	mock.lockGenerateEnygmaJSProof.RLock()
 	calls = mock.calls.GenerateEnygmaJSProof

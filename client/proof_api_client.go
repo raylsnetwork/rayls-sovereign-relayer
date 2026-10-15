@@ -359,6 +359,16 @@ func (c *ProofAPIClient) CreateDepositProof(k int, req types.DepositProofRequest
 func (c *ProofAPIClient) CreateWithdrawProof(k int, req types.WithdrawProofRequest) (types.EnygmaProofResponse, error) {
 	slog.Info("Creating Withdraw Proof")
 
+	if req.PaymentCommitment == nil || req.PaymentSecretKey == nil || req.PaymentSalt == nil {
+		return types.EnygmaProofResponse{}, fmt.Errorf(
+			"withdraw proof request is missing a payment-output scalar"+
+				" (commitment set: %t, secret key set: %t, salt set: %t)",
+			req.PaymentCommitment != nil,
+			req.PaymentSecretKey != nil,
+			req.PaymentSalt != nil,
+		)
+	}
+
 	// Select endpoint based on k value
 	var endpoint string
 	switch k {
@@ -394,11 +404,10 @@ func (c *ProofAPIClient) CreateWithdrawProof(k int, req types.WithdrawProofReque
 		HashedSharedSecrets:       convertBigIntArrayToStringArray(req.ArrayHashSecrets),
 		MessageTags:               convertBigIntArrayToStringArray(req.MessageTags),
 		AnonymitySet:              convertBigIntArrayToStringArray(req.DestinationChainIDs),
-		Hashes:                    convertBigIntArrayToStringArray(req.DepositCommitments),
-		SkDeposits:                convertBigIntArrayToStringArray(req.DepositSecretKeys),
-		VPerDeposit:               convertBigIntArrayToStringArray(req.DepositAmounts),
+		PaymentCommitment:         req.PaymentCommitment.String(),
+		PaymentSecretKey:          req.PaymentSecretKey.String(),
+		PaymentSalt:               req.PaymentSalt.String(),
 		Address:                   req.TokenAddress.Big().String(),
-		SaltsIn:                   convertBigIntArrayToStringArray(req.DepositSalts),
 	}
 
 	reqURL := buildRequestURL(c.baseURL, endpoint, url.Values{})

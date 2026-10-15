@@ -237,45 +237,40 @@ func (s *ProofService) GenerateERC1155JSProof(
 	return receipt, nil
 }
 
+// GenerateEnygmaJSProof proves an Enygma join-split described by in.
 func (s *ProofService) GenerateEnygmaJSProof(
 	ctx context.Context,
-	sourceViewPublicKey []byte,
-	nftCommitment *big.Int,
-	destinationPaymentPublicKey *big.Int,
-	destinationSalt *big.Int,
-	paymentAmount *big.Int,
-	tokenAddress string,
-	deposits []*types.DvpDeposit,
+	in dvp.EnygmaJSProofInput,
 ) (*dvp.ProofReceipt, error) {
-	params, err := s.prepareCommonJSParams(ctx, deposits, paymentAmount, destinationPaymentPublicKey)
+	params, err := s.prepareCommonJSParams(ctx, in.Deposits, in.PaymentAmount, in.DestinationPaymentPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("prepare common JS params for Enygma: %w", err)
 	}
 
-	changeSalt, _, err := cryptography.GenerateSalt(sourceViewPublicKey)
+	changeSalt, _, err := cryptography.GenerateSalt(in.SourceViewPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("generate salt for Enygma change deposit: %w", err)
 	}
 
-	revertSalt, _, err := cryptography.GenerateSalt(sourceViewPublicKey)
+	revertSalt, _, err := cryptography.GenerateSalt(in.SourceViewPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("generate salt for Enygma revert deposit: %w", err)
 	}
 
 	jsProof, err := s.proofClient.CreateEnygmaJSProof(
 		&dvp.EnygmaJoinSplitProofRequest{
-			NftCommitment: nftCommitment,
+			NftCommitment: in.NftCommitment,
 			ValuesIn:      params.ValuesIn,
 			SaltsIn:       params.SaltsIn,
 			KeyPairsIn:    params.KeyPairsIn,
 			ValuesOut:     params.ValuesOut,
-			SaltsOut:      []*big.Int{destinationSalt, changeSalt},
+			SaltsOut:      []*big.Int{in.DestinationSalt, changeSalt},
 			PubKeysOut:    params.PubKeysOut,
 			MerkleDepth:   params.MerkleDepth,
 			MerkleProofs:  params.MerkleProofs,
 			MerkleRoots:   params.MerkleRoots,
 			TreeNumbers:   params.TreeNumbers,
-			ERC20Address:  tokenAddress,
+			ERC20Address:  in.TokenAddress,
 			RevertSalt:    revertSalt,
 		})
 	if err != nil {
@@ -303,12 +298,12 @@ func (s *ProofService) GenerateEnygmaJSProof(
 		err = s.depositRepository.CreateDeposit(
 			ctx,
 			&types.DvpDeposit{
-				UserAddress:  deposits[0].UserAddress,
+				UserAddress:  in.Deposits[0].UserAddress,
 				Salt:         changeSalt,
 				TokenAmount:  params.ChangeAmount,
-				TokenAddress: tokenAddress,
+				TokenAddress: in.TokenAddress,
 				TokenType:    types.DvpEnygma,
-				TokenID:      deposits[0].TokenID,
+				TokenID:      in.Deposits[0].TokenID,
 				Commitment:   changeCommitment,
 				Status:       types.DvpDepositPending,
 			},
@@ -318,16 +313,16 @@ func (s *ProofService) GenerateEnygmaJSProof(
 		}
 	}
 
-	if len(deposits) > 0 {
+	if len(in.Deposits) > 0 {
 		err = s.depositRepository.CreateDeposit(
 			ctx,
 			&types.DvpDeposit{
-				UserAddress:  deposits[0].UserAddress,
+				UserAddress:  in.Deposits[0].UserAddress,
 				Salt:         revertSalt,
 				TokenAmount:  params.TotalAmount,
-				TokenAddress: tokenAddress,
+				TokenAddress: in.TokenAddress,
 				TokenType:    types.DvpEnygma,
-				TokenID:      deposits[0].TokenID,
+				TokenID:      in.Deposits[0].TokenID,
 				Commitment:   receipt.RevertCommitment,
 				Status:       types.DvpDepositPending,
 			},
@@ -557,7 +552,15 @@ func (s *ProofService) GenerateEnygmaToERC721SwapProof(
 		return nil, fmt.Errorf("calculating NFT commitment: %w", err)
 	}
 
-	proof, err := s.GenerateEnygmaJSProof(ctx, sourceViewPublicKey, nftCommitment, destSpendPubKey, destSalt, swap.TokenInAmount, swap.TokenInAddress, deposits)
+	proof, err := s.GenerateEnygmaJSProof(ctx, dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         sourceViewPublicKey,
+		NftCommitment:               nftCommitment,
+		DestinationPaymentPublicKey: destSpendPubKey,
+		DestinationSalt:             destSalt,
+		PaymentAmount:               swap.TokenInAmount,
+		TokenAddress:                swap.TokenInAddress,
+		Deposits:                    deposits,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("generating enygma JS proof: %w", err)
 	}
@@ -617,7 +620,15 @@ func (s *ProofService) GenerateEnygmaToERC1155SwapProof(
 		return nil, fmt.Errorf("calculating ERC1155 commitment: %w", err)
 	}
 
-	proof, err := s.GenerateEnygmaJSProof(ctx, sourceViewPublicKey, erc1155Commitment, destSpendPubKey, destSalt, swap.TokenInAmount, swap.TokenInAddress, deposits)
+	proof, err := s.GenerateEnygmaJSProof(ctx, dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         sourceViewPublicKey,
+		NftCommitment:               erc1155Commitment,
+		DestinationPaymentPublicKey: destSpendPubKey,
+		DestinationSalt:             destSalt,
+		PaymentAmount:               swap.TokenInAmount,
+		TokenAddress:                swap.TokenInAddress,
+		Deposits:                    deposits,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("generating enygma JS proof: %w", err)
 	}

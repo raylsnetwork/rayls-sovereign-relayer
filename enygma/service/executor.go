@@ -31,7 +31,6 @@ const millisPerSecond = txutil.MillisPerSecond
 
 type ExecutorConfig struct {
 	DefaultContextTimeout time.Duration
-	MaxNumberOfJSDeposits int
 }
 
 type executorTracer interface {
@@ -87,8 +86,8 @@ type executorEnygmaClient interface {
 }
 
 type ExecutorDvpIntegrationClient interface {
-	Deposit(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
-	Withdraw(ctx context.Context, chainEventID string, batches []*types.EnygmaTransferBatch, proof *types.EnygmaProofResponse, blockNumber *big.Int, jsProof *dvp.ProofReceipt, chainId *big.Int, resourceId string, amount *big.Int, from common.Address, sourceTxHash common.Hash, dvpIntegrationAddress common.Address) error
+	Deposit(ctx context.Context, req contractclient.DvpIntegrationTxRequest) error
+	Withdraw(ctx context.Context, req contractclient.DvpIntegrationTxRequest, jsProof *dvp.ProofReceipt) error
 }
 
 type executorKeysClient interface {
@@ -383,8 +382,18 @@ func (e *EnygmaExecutor) ExecuteEnygmaDeposit(
 	if err != nil {
 		return fmt.Errorf("getting dvp integration contract address for deposit: %w", err)
 	}
-	err = e.enygmaIntegrationClient.Deposit(ctxTx, chainEventID, batches, proof, blockNumberPrivateHub, e.plChainId,
-		resourceId, amount, from, txHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Deposit(ctxTx, contractclient.DvpIntegrationTxRequest{
+		ChainEventID:          chainEventID,
+		Batches:               batches,
+		Proof:                 proof,
+		BlockNumber:           blockNumberPrivateHub,
+		ChainId:               e.plChainId,
+		ResourceId:            resourceId,
+		Amount:                amount,
+		From:                  from,
+		SourceTxHash:          txHash,
+		DvpIntegrationAddress: enygmaIntegrationAddress,
+	})
 	if err != nil {
 		slog.Error(
 			"Error signing Enygma deposit",
@@ -413,40 +422,35 @@ func (e *EnygmaExecutor) ExecuteEnygmaDeposit(
 	return nil
 }
 
-func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
-	ctx context.Context,
-	chainEventID string,
-	resourceId string,
-	amount *big.Int,
-	deposits []*types.DvpDeposit,
-	blockNumber uint64,
-	enygmaAddress common.Address,
-	jsProof *dvp.ProofReceipt,
-	from common.Address,
-	txHash common.Hash,
-) error {
-	blockNumberPrivateHub := new(big.Int).SetUint64(blockNumber)
+// EnygmaWithdrawalRequest holds the inputs for an Enygma withdrawal from DvP.
+type EnygmaWithdrawalRequest struct {
+	ChainEventID  string
+	ResourceId    string
+	Amount        *big.Int
+	PaymentSalt   *big.Int
+	BlockNumber   uint64
+	EnygmaAddress common.Address
+	JSProof       *dvp.ProofReceipt
+	// WithdrawingUser is the user whose DvP balance is withdrawn; it becomes the
+	// From of the DvP balance-update record (user -> DvP integration contract).
+	WithdrawingUser common.Address
+	TxHash          common.Hash
+}
 
-	// Prepare EnygmaDvp related info: deposit private keys, commitments, amounts
-	if len(deposits) > e.conf.MaxNumberOfJSDeposits {
-		return fmt.Errorf(
-			"number of deposits (%d) exceeds MaxNumberOfJSDeposits (%d)",
-			len(deposits),
-			e.conf.MaxNumberOfJSDeposits,
-		)
+// ExecuteEnygmaWithdrawal proves and submits a withdrawal of req.Amount from DvP
+// back into the Enygma balance, binding the proof to the join-split payment output.
+func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(ctx context.Context, req EnygmaWithdrawalRequest) error {
+	if req.Amount == nil {
+		return errors.New("withdrawal request is missing its amount")
+	}
+	if req.PaymentSalt == nil {
+		return errors.New("withdrawal request is missing its payment salt")
+	}
+	if req.JSProof == nil {
+		return errors.New("withdrawal request is missing its join-split receipt")
 	}
 
-	depositCommitments := make([]*big.Int, e.conf.MaxNumberOfJSDeposits)
-	depositSecretKeys := make([]*big.Int, e.conf.MaxNumberOfJSDeposits)
-	depositAmounts := make([]*big.Int, e.conf.MaxNumberOfJSDeposits)
-	depositSalts := make([]*big.Int, e.conf.MaxNumberOfJSDeposits)
-
-	for i := range e.conf.MaxNumberOfJSDeposits {
-		depositCommitments[i] = big.NewInt(0)
-		depositSecretKeys[i] = big.NewInt(0)
-		depositAmounts[i] = big.NewInt(0)
-		depositSalts[i] = big.NewInt(0)
-	}
+	blockNumberPrivateHub := new(big.Int).SetUint64(req.BlockNumber)
 
 	spendKeyResp, err := e.keysClient.GetPaymentSpendKey(ctx, &keyspb.GetPaymentSpendKeyRequest{})
 	if err != nil {
@@ -457,24 +461,27 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
 		PublicKey: new(big.Int).SetBytes(spendKeyResp.GetPublicKey()),
 	}
 
-	for i, deposit := range deposits {
-		depositCommitment, err := e.commitmentCalculator.CalculatePaymentCommitment(
-			spendKey.PublicKey,
-			deposit.Salt,
-			deposit.TokenAmount,
-			deposit.TokenAddress,
-		)
-		if err != nil {
-			return fmt.Errorf("calculating payment commitment: %w", err)
-		}
-
-		depositCommitments[i] = depositCommitment
-		depositSecretKeys[i] = spendKey.SecretKey
-		depositAmounts[i] = deposit.TokenAmount
-		depositSalts[i] = deposit.Salt
+	// The withdraw proof opens the join-split's payment output with the credited
+	// amount, and the contract requires it to equal the receipt's commitments[0].
+	// The commitment is recomputed from the spend key fetched above (the proof
+	// needs its secret half anyway), so a key that changed since the initiator
+	// built the join-split is caught here rather than on-chain.
+	paymentCommitment, err := e.commitmentCalculator.CalculatePaymentCommitment(
+		spendKey.PublicKey,
+		req.PaymentSalt,
+		req.Amount,
+		// The Enygma contract address is the token address: the initiator finds
+		// the deposits and builds the join-split output with this same address.
+		req.EnygmaAddress.Hex(),
+	)
+	if err != nil {
+		return fmt.Errorf("calculating payment commitment: %w", err)
+	}
+	if err := checkPaymentOutput(req.JSProof, paymentCommitment); err != nil {
+		return fmt.Errorf("validating join-split payment output for withdrawal: %w", err)
 	}
 
-	batches, err := e.batcher.CreateBatchesWithAnonimity(ctx, resourceId, blockNumberPrivateHub, nil)
+	batches, err := e.batcher.CreateBatchesWithAnonimity(ctx, req.ResourceId, blockNumberPrivateHub, nil)
 	if err != nil {
 		return fmt.Errorf("creating batches for withdrawal: %w", err)
 	}
@@ -483,22 +490,21 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
 	proof, _, rValues, _, err := e.proofGen.GenerateWithdrawProof(
 		ctx,
 		enygma.WithdrawProofParams{
-			ResourceId:         resourceId,
-			AnonymityIndex:     anonymityIndex,
-			SenderAmount:       amount,
-			BlockNumber:        blockNumberPrivateHub,
-			Batches:            batches,
-			DepositCommitments: depositCommitments,
-			DepositSecretKeys:  depositSecretKeys,
-			DepositAmounts:     depositAmounts,
-			DepositSalts:       depositSalts,
-			TokenAddress:       enygmaAddress,
+			ResourceId:        req.ResourceId,
+			AnonymityIndex:    anonymityIndex,
+			SenderAmount:      req.Amount,
+			BlockNumber:       blockNumberPrivateHub,
+			Batches:           batches,
+			TokenAddress:      req.EnygmaAddress,
+			PaymentCommitment: paymentCommitment,
+			PaymentSecretKey:  spendKey.SecretKey,
+			PaymentSalt:       req.PaymentSalt,
 		},
 	)
 	if err != nil {
 		slog.Error(
 			"Error generating Enygma withdrawal proof",
-			slog.String("resourceId", resourceId),
+			slog.String("resourceId", req.ResourceId),
 			slog.String("err", err.Error()),
 		)
 		return fmt.Errorf("generating enygma withdrawal proof: %w", err)
@@ -515,22 +521,33 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
 	ctxTx, cancel := context.WithTimeout(ctx, e.conf.DefaultContextTimeout)
 	defer cancel()
 
-	enygmaIntegrationAddress, err := e.enygmaClient.GetDvpIntegrationContractAddress(ctx, enygmaAddress)
+	enygmaIntegrationAddress, err := e.enygmaClient.GetDvpIntegrationContractAddress(ctx, req.EnygmaAddress)
 	if err != nil {
 		return fmt.Errorf("getting dvp integration contract address for withdrawal: %w", err)
 	}
 
-	err = e.enygmaIntegrationClient.Withdraw(ctxTx, chainEventID, batches, proof, blockNumberPrivateHub, jsProof, e.plChainId, resourceId, amount, from, txHash, enygmaIntegrationAddress)
+	err = e.enygmaIntegrationClient.Withdraw(ctxTx, contractclient.DvpIntegrationTxRequest{
+		ChainEventID:          req.ChainEventID,
+		Batches:               batches,
+		Proof:                 proof,
+		BlockNumber:           blockNumberPrivateHub,
+		ChainId:               e.plChainId,
+		ResourceId:            req.ResourceId,
+		Amount:                req.Amount,
+		From:                  req.WithdrawingUser,
+		SourceTxHash:          req.TxHash,
+		DvpIntegrationAddress: enygmaIntegrationAddress,
+	}, req.JSProof)
 	if err != nil {
-		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", resourceId), slog.Any("err", err))
+		slog.Error("Error signing Enygma withdrawal", slog.String("resourceId", req.ResourceId), slog.Any("err", err))
 		return fmt.Errorf("signing enygma withdrawal: %w", err)
 	}
 
 	history := types.EnygmaHistory{
-		ResourceId:            resourceId,
+		ResourceId:            req.ResourceId,
 		FromChainId:           e.plChainId,
 		RFactor:               senderRFactor,
-		BalanceChange:         amount,
+		BalanceChange:         req.Amount,
 		BlockNumberPrivateHub: blockNumberPrivateHub,
 		EventType:             types.EnygmaWithdrawFromDvp,
 	}
@@ -541,6 +558,31 @@ func (e *EnygmaExecutor) ExecuteEnygmaWithdrawal(
 		}
 	}
 
-	slog.Debug("Enygma withdrawal done", slog.String("resourceId", resourceId))
+	slog.Debug("Enygma withdrawal done", slog.String("resourceId", req.ResourceId))
+	return nil
+}
+
+// checkPaymentOutput reports whether the join-split receipt's payment output
+// (commitments[0]) is the commitment the withdraw proof will open. The contract
+// rejects the withdrawal otherwise, so a mismatch is caught before proving.
+// ExecuteEnygmaWithdrawal already rejects a nil receipt, and the nil
+// commitment check only fires if the calculator breaks its contract by
+// returning (nil, nil); both are defensive, so the guard never panics.
+// A mismatch is deliberately not a retryable error: it cannot heal at a later
+// block, so the withdrawal fails fast and must be re-driven.
+func checkPaymentOutput(jsProof *dvp.ProofReceipt, paymentCommitment *big.Int) error {
+	if paymentCommitment == nil {
+		return errors.New("calculated withdraw payment commitment is nil")
+	}
+	if jsProof == nil || len(jsProof.Commitments) == 0 || jsProof.Commitments[0] == nil {
+		return errors.New("join-split receipt has no payment output")
+	}
+	if jsProof.Commitments[0].Cmp(paymentCommitment) != 0 {
+		return fmt.Errorf(
+			"join-split payment output %s does not match withdraw payment commitment %s"+
+				" (spend key, salt or amount differs from the join-split's)",
+			jsProof.Commitments[0], paymentCommitment,
+		)
+	}
 	return nil
 }

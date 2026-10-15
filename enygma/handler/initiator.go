@@ -84,16 +84,7 @@ type initiatorDepositConsolidator interface {
 }
 
 type initiatorDvpProofGenerator interface {
-	GenerateEnygmaJSProof(
-		ctx context.Context,
-		sourceViewPublicKey []byte,
-		nftCommitment *big.Int,
-		destinationPaymentPublicKey *big.Int,
-		destinationSalt *big.Int,
-		paymentAmount *big.Int,
-		tokenAddress string,
-		deposits []*types.DvpDeposit,
-	) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 }
 
 type initiatorTracer interface {
@@ -124,7 +115,7 @@ type initiatorEnygmaExecutor interface {
 	ExecuteEnygmaSupplyUpdate(ctx context.Context, batchID string, resourceId string, blockNumber uint64, batch types.EnygmaSupplyUpdate, enygmaAddress common.Address) error
 	ExecuteEnygmaCrossTransfer(ctx context.Context, batchID string, blockNumber uint64, resourceId string, batch map[string][]*types.EnygmaTransferBatchTx, enygmaAddress common.Address) error
 	ExecuteEnygmaDeposit(ctx context.Context, id string, resourceId string, amount *big.Int, blockNumber uint64, commitment *big.Int, salt *big.Int, from common.Address, txHash common.Hash, enygmaAddress common.Address) error
-	ExecuteEnygmaWithdrawal(ctx context.Context, chainEventID string, resourceId string, amount *big.Int, deposits []*types.DvpDeposit, blockNumber uint64, enygmaAddress common.Address, proof *dvp.ProofReceipt, from common.Address, txHash common.Hash) error
+	ExecuteEnygmaWithdrawal(ctx context.Context, req service.EnygmaWithdrawalRequest) error
 }
 
 type initiatorEnygmaFinalizationService interface {
@@ -530,16 +521,15 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		return blockNumber, fmt.Errorf("generating salt: %w", err)
 	}
 
-	jsProof, err := s.dvpProofGen.GenerateEnygmaJSProof(
-		ctx,
-		viewPubKey,
-		nftCommitment,
-		spendPublicKey,
-		destSalt,
-		amount,
-		enygmaAddress.Hex(),
-		jsDeposits,
-	)
+	jsProof, err := s.dvpProofGen.GenerateEnygmaJSProof(ctx, dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         viewPubKey,
+		NftCommitment:               nftCommitment,
+		DestinationPaymentPublicKey: spendPublicKey,
+		DestinationSalt:             destSalt,
+		PaymentAmount:               amount,
+		TokenAddress:                enygmaAddress.Hex(),
+		Deposits:                    jsDeposits,
+	})
 	if err != nil {
 		return blockNumber, fmt.Errorf("generate enygma JS proof: %w", err)
 	}
@@ -560,6 +550,10 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		return blockNumber, fmt.Errorf("batch upsert nullifiers: %w", err)
 	}
 
+	// destSalt and jsProof are fixed across retries: the receipt's payment output
+	// commits to this salt, so regenerating it would break the withdraw proof.
+	// Only the block number varies, and it is part of the CTS idempotency ID, so
+	// each block bump is signed as a fresh transaction.
 	maxRetries := 30
 	blockNumber, err = s.retryService.RetryOperation(
 		ctx,
@@ -567,18 +561,17 @@ func (s *Initiator) HandleEnygmaWithdrawal(
 		maxRetries,
 		blockNumber,
 		func(ctx context.Context, nextBlockNumber uint64) error {
-			return s.executor.ExecuteEnygmaWithdrawal(
-				ctx,
-				chainEventID,
-				resourceId,
-				amount,
-				jsDeposits,
-				nextBlockNumber,
-				enygmaAddress,
-				jsProof,
-				to,
-				txHash,
-			)
+			return s.executor.ExecuteEnygmaWithdrawal(ctx, service.EnygmaWithdrawalRequest{
+				ChainEventID:    chainEventID,
+				ResourceId:      resourceId,
+				Amount:          amount,
+				PaymentSalt:     destSalt,
+				BlockNumber:     nextBlockNumber,
+				EnygmaAddress:   enygmaAddress,
+				JSProof:         jsProof,
+				WithdrawingUser: to,
+				TxHash:          txHash,
+			})
 		},
 	)
 	if err != nil {

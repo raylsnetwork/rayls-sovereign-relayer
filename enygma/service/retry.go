@@ -145,7 +145,10 @@ func (rs *RetryService) isRetryableError(err error) bool {
 		return true
 	}
 
-	// List of smart contract error messages that should trigger retries
+	// List of smart contract error messages that should trigger retries.
+	// EnygmaDvpIntegration__PaymentCommitmentMismatch is deliberately absent:
+	// a withdraw proof that opens the wrong payment output cannot succeed at a
+	// later block, so it must fail fast (see checkPaymentOutput).
 	retryableContractErrors := []string{
 		"Invalid public signal for balance",
 		"BlockNumber in Proof was already finalised.",

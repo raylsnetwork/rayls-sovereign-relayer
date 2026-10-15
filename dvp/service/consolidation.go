@@ -57,16 +57,7 @@ type consolidationProofService interface {
 		tokenID string,
 		deposits []*types.DvpDeposit,
 	) (*dvp.ProofReceipt, error)
-	GenerateEnygmaJSProof(
-		ctx context.Context,
-		sourceViewPublicKey []byte,
-		nftCommitment *big.Int,
-		destinationPaymentPublicKey *big.Int,
-		destinationSalt *big.Int,
-		paymentAmount *big.Int,
-		tokenAddress string,
-		deposits []*types.DvpDeposit,
-	) (*dvp.ProofReceipt, error)
+	GenerateEnygmaJSProof(ctx context.Context, in dvp.EnygmaJSProofInput) (*dvp.ProofReceipt, error)
 }
 
 type consolidationDvpClient interface {
@@ -297,16 +288,15 @@ func (s *ConsolidationService) ConsolidateEnygmaDeposits(
 	}
 
 	// Generate proof BEFORE locking deposits — proof generation is pure computation.
-	proof, err := s.proofService.GenerateEnygmaJSProof(
-		ctx,
-		sourceViewPublicKey,
-		nftCommitment,
-		spendPublicKey,
-		consolidationSalt,
-		consolidationAmount,
-		tokenAddress,
-		depositsToConsolidate,
-	)
+	proof, err := s.proofService.GenerateEnygmaJSProof(ctx, dvp.EnygmaJSProofInput{
+		SourceViewPublicKey:         sourceViewPublicKey,
+		NftCommitment:               nftCommitment,
+		DestinationPaymentPublicKey: spendPublicKey,
+		DestinationSalt:             consolidationSalt,
+		PaymentAmount:               consolidationAmount,
+		TokenAddress:                tokenAddress,
+		Deposits:                    depositsToConsolidate,
+	})
 	if err != nil {
 		return nil, err
 	}
