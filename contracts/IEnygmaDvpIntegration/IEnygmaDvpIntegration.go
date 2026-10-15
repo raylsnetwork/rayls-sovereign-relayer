@@ -62,15 +62,9 @@ type IEnygmaDvpIntegrationWithdrawOrDepositProof struct {
 	PublicSignal []*big.Int
 }
 
-// IEnygmaV1Point is an auto generated low-level Go binding around an user-defined struct.
-type IEnygmaV1Point struct {
-	C1 *big.Int
-	C2 *big.Int
-}
-
 // IEnygmaDvpIntegrationMetaData contains all meta data concerning the IEnygmaDvpIntegration contract.
 var IEnygmaDvpIntegrationMetaData = bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"addDepositToDvpVerifier\",\"inputs\":[{\"name\":\"depositToDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDvp\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addWithdrawFromDvpVerifier\",\"inputs\":[{\"name\":\"withdrawFromDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvp\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"},{\"name\":\"commitments\",\"type\":\"tuple[]\",\"internalType\":\"structIEnygmaV1.Point[]\",\"components\":[{\"name\":\"c1\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"c2\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"chainIds\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getDepositToDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDvpAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getWithdrawFromDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"withdrawFromDvp\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"},{\"name\":\"commitments\",\"type\":\"tuple[]\",\"internalType\":\"structIEnygmaV1.Point[]\",\"components\":[{\"name\":\"c1\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"c2\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"chainIds\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"encryptedMintUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"DepositToDvpSuccesful\",\"inputs\":[{\"name\":\"commitment\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierDepositToDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierWithdrawFromDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"WithdrawFromDvpSuccesful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"addDepositToDvpVerifier\",\"inputs\":[{\"name\":\"depositToDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDvp\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addWithdrawFromDvpVerifier\",\"inputs\":[{\"name\":\"withdrawFromDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"consolidateFunds\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"encryptedBurnUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getDepositToDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDvpAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getVaultId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getWithdrawFromDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setVaultId\",\"inputs\":[{\"name\":\"vaultId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"withdrawFromDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"encryptedMintUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"ConsolidateFundsSuccessful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DepositToDvpSuccessful\",\"inputs\":[{\"name\":\"commitment\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DvpRegistered\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VaultIdSet\",\"inputs\":[{\"name\":\"vaultId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierDepositToDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierWithdrawFromDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"WithdrawFromDvpSuccessful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false}]",
 	ID:  "IEnygmaDvpIntegration",
 }
 
@@ -169,12 +163,37 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackAddWithdrawFromDvpVeri
 	return out0, err
 }
 
-// PackDepositToDvp is the Go binding used to pack the parameters required for calling
-// the contract method with ID 0xf3e30ef4.
+// PackConsolidateFunds is the Go binding used to pack the parameters required for calling
+// the contract method with ID 0x8d54447b.
 //
-// Solidity: function depositToDvp(uint8 k, (uint256,uint256)[] commitments, (uint256[2],uint256[2][2],uint256[2],uint256[]) proof, uint256[] chainIds, bytes[] encryptedMessages) returns(bool)
-func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackDepositToDvp(k uint8, commitments []IEnygmaV1Point, proof IEnygmaDvpIntegrationWithdrawOrDepositProof, chainIds []*big.Int, encryptedMessages [][]byte) []byte {
-	enc, err := iEnygmaDvpIntegration.abi.Pack("depositToDvp", k, commitments, proof, chainIds, encryptedMessages)
+// Solidity: function consolidateFunds((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackConsolidateFunds(transaction IDvpProofReceipt) []byte {
+	enc, err := iEnygmaDvpIntegration.abi.Pack("consolidateFunds", transaction)
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
+// UnpackConsolidateFunds is the Go binding that unpacks the parameters returned
+// from invoking the contract method with ID 0x8d54447b.
+//
+// Solidity: function consolidateFunds((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackConsolidateFunds(data []byte) (bool, error) {
+	out, err := iEnygmaDvpIntegration.abi.Unpack("consolidateFunds", data)
+	if err != nil {
+		return *new(bool), err
+	}
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+	return out0, err
+}
+
+// PackDepositToDvp is the Go binding used to pack the parameters required for calling
+// the contract method with ID 0xecc920c5.
+//
+// Solidity: function depositToDvp((uint256[2],uint256[2][2],uint256[2],uint256[]) proof, bytes[] encryptedMessages, bytes encryptedBurnUpdate) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackDepositToDvp(proof IEnygmaDvpIntegrationWithdrawOrDepositProof, encryptedMessages [][]byte, encryptedBurnUpdate []byte) []byte {
+	enc, err := iEnygmaDvpIntegration.abi.Pack("depositToDvp", proof, encryptedMessages, encryptedBurnUpdate)
 	if err != nil {
 		panic(err)
 	}
@@ -182,9 +201,9 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackDepositToDvp(k uint8, co
 }
 
 // UnpackDepositToDvp is the Go binding that unpacks the parameters returned
-// from invoking the contract method with ID 0xf3e30ef4.
+// from invoking the contract method with ID 0xecc920c5.
 //
-// Solidity: function depositToDvp(uint8 k, (uint256,uint256)[] commitments, (uint256[2],uint256[2][2],uint256[2],uint256[]) proof, uint256[] chainIds, bytes[] encryptedMessages) returns(bool)
+// Solidity: function depositToDvp((uint256[2],uint256[2][2],uint256[2],uint256[]) proof, bytes[] encryptedMessages, bytes encryptedBurnUpdate) returns(bool)
 func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackDepositToDvp(data []byte) (bool, error) {
 	out, err := iEnygmaDvpIntegration.abi.Unpack("depositToDvp", data)
 	if err != nil {
@@ -244,6 +263,31 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackGetDvpAddress(data []b
 	return out0, err
 }
 
+// PackGetVaultId is the Go binding used to pack the parameters required for calling
+// the contract method with ID 0x4e2285f1.
+//
+// Solidity: function getVaultId() view returns(uint256)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackGetVaultId() []byte {
+	enc, err := iEnygmaDvpIntegration.abi.Pack("getVaultId")
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
+// UnpackGetVaultId is the Go binding that unpacks the parameters returned
+// from invoking the contract method with ID 0x4e2285f1.
+//
+// Solidity: function getVaultId() view returns(uint256)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackGetVaultId(data []byte) (*big.Int, error) {
+	out, err := iEnygmaDvpIntegration.abi.Unpack("getVaultId", data)
+	if err != nil {
+		return new(big.Int), err
+	}
+	out0 := abi.ConvertType(out[0], new(big.Int)).(*big.Int)
+	return out0, err
+}
+
 // PackGetWithdrawFromDvpVerifierAddress is the Go binding used to pack the parameters required for calling
 // the contract method with ID 0x9ffba8d8.
 //
@@ -269,12 +313,37 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackGetWithdrawFromDvpVeri
 	return out0, err
 }
 
-// PackWithdrawFromDvp is the Go binding used to pack the parameters required for calling
-// the contract method with ID 0x2c622ca5.
+// PackSetVaultId is the Go binding used to pack the parameters required for calling
+// the contract method with ID 0xb18c312d.
 //
-// Solidity: function withdrawFromDvp(uint8 k, (uint256,uint256)[] commitments, (uint256[2],uint256[2][2],uint256[2],uint256[]) proof, uint256[] chainIds, bytes[] encryptedMessages, (((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, bytes encryptedMintUpdate) returns(bool)
-func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackWithdrawFromDvp(k uint8, commitments []IEnygmaV1Point, proof IEnygmaDvpIntegrationWithdrawOrDepositProof, chainIds []*big.Int, encryptedMessages [][]byte, transaction IDvpProofReceipt, encryptedMintUpdate []byte) []byte {
-	enc, err := iEnygmaDvpIntegration.abi.Pack("withdrawFromDvp", k, commitments, proof, chainIds, encryptedMessages, transaction, encryptedMintUpdate)
+// Solidity: function setVaultId(uint256 vaultId) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackSetVaultId(vaultId *big.Int) []byte {
+	enc, err := iEnygmaDvpIntegration.abi.Pack("setVaultId", vaultId)
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
+// UnpackSetVaultId is the Go binding that unpacks the parameters returned
+// from invoking the contract method with ID 0xb18c312d.
+//
+// Solidity: function setVaultId(uint256 vaultId) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackSetVaultId(data []byte) (bool, error) {
+	out, err := iEnygmaDvpIntegration.abi.Unpack("setVaultId", data)
+	if err != nil {
+		return *new(bool), err
+	}
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+	return out0, err
+}
+
+// PackWithdrawFromDvp is the Go binding used to pack the parameters required for calling
+// the contract method with ID 0xbb295d70.
+//
+// Solidity: function withdrawFromDvp((uint256[2],uint256[2][2],uint256[2],uint256[]) proof, bytes[] encryptedMessages, (((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, bytes encryptedMintUpdate) returns(bool)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackWithdrawFromDvp(proof IEnygmaDvpIntegrationWithdrawOrDepositProof, encryptedMessages [][]byte, transaction IDvpProofReceipt, encryptedMintUpdate []byte) []byte {
+	enc, err := iEnygmaDvpIntegration.abi.Pack("withdrawFromDvp", proof, encryptedMessages, transaction, encryptedMintUpdate)
 	if err != nil {
 		panic(err)
 	}
@@ -282,9 +351,9 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) PackWithdrawFromDvp(k uint8,
 }
 
 // UnpackWithdrawFromDvp is the Go binding that unpacks the parameters returned
-// from invoking the contract method with ID 0x2c622ca5.
+// from invoking the contract method with ID 0xbb295d70.
 //
-// Solidity: function withdrawFromDvp(uint8 k, (uint256,uint256)[] commitments, (uint256[2],uint256[2][2],uint256[2],uint256[]) proof, uint256[] chainIds, bytes[] encryptedMessages, (((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, bytes encryptedMintUpdate) returns(bool)
+// Solidity: function withdrawFromDvp((uint256[2],uint256[2][2],uint256[2],uint256[]) proof, bytes[] encryptedMessages, (((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, bytes encryptedMintUpdate) returns(bool)
 func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackWithdrawFromDvp(data []byte) (bool, error) {
 	out, err := iEnygmaDvpIntegration.abi.Unpack("withdrawFromDvp", data)
 	if err != nil {
@@ -294,30 +363,154 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackWithdrawFromDvp(data [
 	return out0, err
 }
 
-// IEnygmaDvpIntegrationDepositToDvpSuccesful represents a DepositToDvpSuccesful event raised by the IEnygmaDvpIntegration contract.
-type IEnygmaDvpIntegrationDepositToDvpSuccesful struct {
+// IEnygmaDvpIntegrationConsolidateFundsSuccessful represents a ConsolidateFundsSuccessful event raised by the IEnygmaDvpIntegration contract.
+type IEnygmaDvpIntegrationConsolidateFundsSuccessful struct {
+	Transaction           IDvpProofReceipt
+	EnygmaContractAddress common.Address
+	Raw                   *types.Log // Blockchain specific contextual infos
+}
+
+const IEnygmaDvpIntegrationConsolidateFundsSuccessfulEventName = "ConsolidateFundsSuccessful"
+
+// ContractEventName returns the user-defined event name.
+func (IEnygmaDvpIntegrationConsolidateFundsSuccessful) ContractEventName() string {
+	return IEnygmaDvpIntegrationConsolidateFundsSuccessfulEventName
+}
+
+// UnpackConsolidateFundsSuccessfulEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event ConsolidateFundsSuccessful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackConsolidateFundsSuccessfulEvent(log *types.Log) (*IEnygmaDvpIntegrationConsolidateFundsSuccessful, error) {
+	event := "ConsolidateFundsSuccessful"
+	if log.Topics[0] != iEnygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(IEnygmaDvpIntegrationConsolidateFundsSuccessful)
+	if len(log.Data) > 0 {
+		if err := iEnygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range iEnygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// IEnygmaDvpIntegrationDepositToDvpSuccessful represents a DepositToDvpSuccessful event raised by the IEnygmaDvpIntegration contract.
+type IEnygmaDvpIntegrationDepositToDvpSuccessful struct {
 	Commitment            *big.Int
 	EnygmaContractAddress common.Address
 	Raw                   *types.Log // Blockchain specific contextual infos
 }
 
-const IEnygmaDvpIntegrationDepositToDvpSuccesfulEventName = "DepositToDvpSuccesful"
+const IEnygmaDvpIntegrationDepositToDvpSuccessfulEventName = "DepositToDvpSuccessful"
 
 // ContractEventName returns the user-defined event name.
-func (IEnygmaDvpIntegrationDepositToDvpSuccesful) ContractEventName() string {
-	return IEnygmaDvpIntegrationDepositToDvpSuccesfulEventName
+func (IEnygmaDvpIntegrationDepositToDvpSuccessful) ContractEventName() string {
+	return IEnygmaDvpIntegrationDepositToDvpSuccessfulEventName
 }
 
-// UnpackDepositToDvpSuccesfulEvent is the Go binding that unpacks the event data emitted
+// UnpackDepositToDvpSuccessfulEvent is the Go binding that unpacks the event data emitted
 // by contract.
 //
-// Solidity: event DepositToDvpSuccesful(uint256 indexed commitment, address enygmaContractAddress)
-func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackDepositToDvpSuccesfulEvent(log *types.Log) (*IEnygmaDvpIntegrationDepositToDvpSuccesful, error) {
-	event := "DepositToDvpSuccesful"
+// Solidity: event DepositToDvpSuccessful(uint256 indexed commitment, address enygmaContractAddress)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackDepositToDvpSuccessfulEvent(log *types.Log) (*IEnygmaDvpIntegrationDepositToDvpSuccessful, error) {
+	event := "DepositToDvpSuccessful"
 	if log.Topics[0] != iEnygmaDvpIntegration.abi.Events[event].ID {
 		return nil, errors.New("event signature mismatch")
 	}
-	out := new(IEnygmaDvpIntegrationDepositToDvpSuccesful)
+	out := new(IEnygmaDvpIntegrationDepositToDvpSuccessful)
+	if len(log.Data) > 0 {
+		if err := iEnygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range iEnygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// IEnygmaDvpIntegrationDvpRegistered represents a DvpRegistered event raised by the IEnygmaDvpIntegration contract.
+type IEnygmaDvpIntegrationDvpRegistered struct {
+	DvpAddress common.Address
+	Raw        *types.Log // Blockchain specific contextual infos
+}
+
+const IEnygmaDvpIntegrationDvpRegisteredEventName = "DvpRegistered"
+
+// ContractEventName returns the user-defined event name.
+func (IEnygmaDvpIntegrationDvpRegistered) ContractEventName() string {
+	return IEnygmaDvpIntegrationDvpRegisteredEventName
+}
+
+// UnpackDvpRegisteredEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event DvpRegistered(address indexed dvpAddress)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackDvpRegisteredEvent(log *types.Log) (*IEnygmaDvpIntegrationDvpRegistered, error) {
+	event := "DvpRegistered"
+	if log.Topics[0] != iEnygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(IEnygmaDvpIntegrationDvpRegistered)
+	if len(log.Data) > 0 {
+		if err := iEnygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range iEnygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// IEnygmaDvpIntegrationVaultIdSet represents a VaultIdSet event raised by the IEnygmaDvpIntegration contract.
+type IEnygmaDvpIntegrationVaultIdSet struct {
+	VaultId *big.Int
+	Raw     *types.Log // Blockchain specific contextual infos
+}
+
+const IEnygmaDvpIntegrationVaultIdSetEventName = "VaultIdSet"
+
+// ContractEventName returns the user-defined event name.
+func (IEnygmaDvpIntegrationVaultIdSet) ContractEventName() string {
+	return IEnygmaDvpIntegrationVaultIdSetEventName
+}
+
+// UnpackVaultIdSetEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event VaultIdSet(uint256 vaultId)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackVaultIdSetEvent(log *types.Log) (*IEnygmaDvpIntegrationVaultIdSet, error) {
+	event := "VaultIdSet"
+	if log.Topics[0] != iEnygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(IEnygmaDvpIntegrationVaultIdSet)
 	if len(log.Data) > 0 {
 		if err := iEnygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return nil, err
@@ -420,30 +613,30 @@ func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackVerifierWithdrawFromDv
 	return out, nil
 }
 
-// IEnygmaDvpIntegrationWithdrawFromDvpSuccesful represents a WithdrawFromDvpSuccesful event raised by the IEnygmaDvpIntegration contract.
-type IEnygmaDvpIntegrationWithdrawFromDvpSuccesful struct {
+// IEnygmaDvpIntegrationWithdrawFromDvpSuccessful represents a WithdrawFromDvpSuccessful event raised by the IEnygmaDvpIntegration contract.
+type IEnygmaDvpIntegrationWithdrawFromDvpSuccessful struct {
 	Transaction           IDvpProofReceipt
 	EnygmaContractAddress common.Address
 	Raw                   *types.Log // Blockchain specific contextual infos
 }
 
-const IEnygmaDvpIntegrationWithdrawFromDvpSuccesfulEventName = "WithdrawFromDvpSuccesful"
+const IEnygmaDvpIntegrationWithdrawFromDvpSuccessfulEventName = "WithdrawFromDvpSuccessful"
 
 // ContractEventName returns the user-defined event name.
-func (IEnygmaDvpIntegrationWithdrawFromDvpSuccesful) ContractEventName() string {
-	return IEnygmaDvpIntegrationWithdrawFromDvpSuccesfulEventName
+func (IEnygmaDvpIntegrationWithdrawFromDvpSuccessful) ContractEventName() string {
+	return IEnygmaDvpIntegrationWithdrawFromDvpSuccessfulEventName
 }
 
-// UnpackWithdrawFromDvpSuccesfulEvent is the Go binding that unpacks the event data emitted
+// UnpackWithdrawFromDvpSuccessfulEvent is the Go binding that unpacks the event data emitted
 // by contract.
 //
-// Solidity: event WithdrawFromDvpSuccesful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
-func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackWithdrawFromDvpSuccesfulEvent(log *types.Log) (*IEnygmaDvpIntegrationWithdrawFromDvpSuccesful, error) {
-	event := "WithdrawFromDvpSuccesful"
+// Solidity: event WithdrawFromDvpSuccessful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
+func (iEnygmaDvpIntegration *IEnygmaDvpIntegration) UnpackWithdrawFromDvpSuccessfulEvent(log *types.Log) (*IEnygmaDvpIntegrationWithdrawFromDvpSuccessful, error) {
+	event := "WithdrawFromDvpSuccessful"
 	if log.Topics[0] != iEnygmaDvpIntegration.abi.Events[event].ID {
 		return nil, errors.New("event signature mismatch")
 	}
-	out := new(IEnygmaDvpIntegrationWithdrawFromDvpSuccesful)
+	out := new(IEnygmaDvpIntegrationWithdrawFromDvpSuccessful)
 	if len(log.Data) > 0 {
 		if err := iEnygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return nil, err

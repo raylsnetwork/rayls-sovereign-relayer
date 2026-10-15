@@ -64,9 +64,9 @@ type IEnygmaDvpIntegrationWithdrawOrDepositProof struct {
 
 // EnygmaDvpIntegrationMetaData contains all meta data concerning the EnygmaDvpIntegration contract.
 var EnygmaDvpIntegrationMetaData = bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"enygmaV1Address\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_factory\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDepositToDvpVerifier\",\"inputs\":[{\"name\":\"depositToDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDvp\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addWithdrawFromDvpVerifier\",\"inputs\":[{\"name\":\"withdrawFromDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"consolidateFunds\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"encryptedBurnUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvpVerifiers\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDepositToDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDvpAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getVaultId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getWithdrawFromDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setVaultId\",\"inputs\":[{\"name\":\"vaultId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"withdrawFromDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"encryptedMintUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"withdrawFromDvpVerifiers\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"DepositToDvpSuccesful\",\"inputs\":[{\"name\":\"commitment\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierDepositToDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierWithdrawFromDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"WithdrawFromDvpSuccesful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__OnlyFactoryAllowed\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__PaymentCommitmentMismatch\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"enygmaV1Address\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_factory\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDepositToDvpVerifier\",\"inputs\":[{\"name\":\"depositToDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addDvp\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"addWithdrawFromDvpVerifier\",\"inputs\":[{\"name\":\"withdrawFromDvpVerifier\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"consolidateFunds\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"encryptedBurnUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"depositToDvpVerifiers\",\"inputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDepositToDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getDvpAddress\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getVaultId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getWithdrawFromDvpVerifierAddress\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setVaultId\",\"inputs\":[{\"name\":\"vaultId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"withdrawFromDvp\",\"inputs\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIEnygmaDvpIntegration.WithdrawOrDepositProof\",\"components\":[{\"name\":\"pi_a\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"pi_b\",\"type\":\"uint256[2][2]\",\"internalType\":\"uint256[2][2]\"},{\"name\":\"pi_c\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"public_signal\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"}]},{\"name\":\"encryptedMessages\",\"type\":\"bytes[]\",\"internalType\":\"bytes[]\"},{\"name\":\"transaction\",\"type\":\"tuple\",\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"encryptedMintUpdate\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"withdrawFromDvpVerifiers\",\"inputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ConsolidateFundsSuccessful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DepositToDvpSuccessful\",\"inputs\":[{\"name\":\"commitment\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DvpRegistered\",\"inputs\":[{\"name\":\"dvpAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VaultIdSet\",\"inputs\":[{\"name\":\"vaultId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierDepositToDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"VerifierWithdrawFromDvpRegistered\",\"inputs\":[{\"name\":\"verifierAddress\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"k\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"WithdrawFromDvpSuccessful\",\"inputs\":[{\"name\":\"transaction\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIDvp.ProofReceipt\",\"components\":[{\"name\":\"proof\",\"type\":\"tuple\",\"internalType\":\"structIDvp.SnarkProof\",\"components\":[{\"name\":\"a\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"b\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G2Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"},{\"name\":\"y\",\"type\":\"uint256[2]\",\"internalType\":\"uint256[2]\"}]},{\"name\":\"c\",\"type\":\"tuple\",\"internalType\":\"structIDvp.G1Point\",\"components\":[{\"name\":\"x\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"y\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}]},{\"name\":\"treeNumbers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"message\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"merkleRoots\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"commitments\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"nullifiers\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"revertCommitment\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"enygmaContractAddress\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__DvpCallFailed\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__DvpNotSet\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__EmptyPublicSignals\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__EmptyReceiptCommitments\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__InvalidProof\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__InvalidPublicSignalLength\",\"inputs\":[{\"name\":\"length\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__InvalidVaultId\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__OnlyFactoryAllowed\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__PaymentCommitmentMismatch\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__TokenFrozen\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__UnsupportedK\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__VaultIdAlreadySet\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__VaultIdNotInitialized\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__VerifierNotSet\",\"inputs\":[{\"name\":\"k\",\"type\":\"uint8\",\"internalType\":\"uint8\"}]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__ZeroAddress\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__ZeroHashCommitment\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"EnygmaDvpIntegration__ZeroPaymentCommitment\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ReentrancyGuardReentrantCall\",\"inputs\":[]}]",
 	ID:  "EnygmaDvpIntegration",
-	Bin: "0x60a06040523480156200001157600080fd5b506040516200360b3803806200360b833981016040819052620000349162000087565b600280546001600160a01b039384166001600160a01b0319918216811790925560008054909116909117905516608052620000bf565b80516001600160a01b03811681146200008257600080fd5b919050565b600080604083850312156200009b57600080fd5b620000a6836200006a565b9150620000b6602084016200006a565b90509250929050565b608051613514620000f7600039600081816101f4015281816102620152818161031c015281816103c8015261050d01526135146000f3fe608060405234801561001057600080fd5b50600436106100ba5760003560e01c8063104c9774146100bf5780634e2285f1146100e75780635cf983db146100f85780637000a7c91461010b57806371c8933a1461012557806378d2a05b1461014e578063860d3ece146101775780638d54447b1461018a5780639ffba8d81461019d578063b18c312d146101c9578063bb295d70146101dc578063c45a0155146101ef578063ecc920c514610216578063ffa26f3814610229575b600080fd5b6100d26100cd3660046125c3565b610255565b60405190151581526020015b60405180910390f35b6003546040519081526020016100de565b6100d26101063660046125c3565b61030f565b6001546001600160a01b03165b6040516100de91906125f8565b61011861013336600461260c565b6004602052600090815260409020546001600160a01b031681565b61011861015c36600461260c565b6005602052600090815260409020546001600160a01b031681565b6100d2610185366004612625565b6103bb565b6100d2610198366004612997565b610428565b6101186101ab3660046129cb565b60ff166000908152600560205260409020546001600160a01b031690565b6100d26101d736600461260c565b610500565b6100d26101ea366004612bd8565b6105dc565b6101187f000000000000000000000000000000000000000000000000000000000000000081565b6100d2610224366004612c8b565b610bce565b6101186102373660046129cb565b60ff166000908152600460205260409020546001600160a01b031690565b6000336001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146102a057604051631f97eea360e01b815260040160405180910390fd5b60ff821660008181526004602090815260409182902080546001600160a01b0319166001600160a01b038816908117909155915192835290917f90bf83a5393fae16f25bdee6a57fd4fe5cf4f11c94018118f9b0faf439a9a9f791015b60405180910390a25060015b92915050565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461035a57604051631f97eea360e01b815260040160405180910390fd5b60ff821660008181526005602090815260409182902080546001600160a01b0319166001600160a01b038816908117909155915192835290917f5abfd12c330e3c44221f811f765f2b5d367a4401414b4aed3f7d9540ba16898891016102fd565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461040657604051631f97eea360e01b815260040160405180910390fd5b50600180546001600160a01b0319166001600160a01b0383161781555b919050565b60006003546000036104555760405162461bcd60e51b815260040161044c90612d15565b60405180910390fd5b6001546001600160a01b031661047d5760405162461bcd60e51b815260040161044c90612d46565b600154600354604051637997ad5b60e01b81526001600160a01b03909216916000918391637997ad5b916104b5918890600401612ec5565b6020604051808303816000875af11580156104d4573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104f89190612ede565b949350505050565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461054b57604051631f97eea360e01b815260040160405180910390fd5b600354156105915760405162461bcd60e51b815260206004820152601360248201527215985d5b1d125908185b1c9958591e481cd95d606a1b604482015260640161044c565b816000036105d35760405162461bcd60e51b815260206004820152600f60248201526e125b9d985b1a59081d985d5b1d1259608a1b604482015260640161044c565b50600355600190565b60008054604080516308d63e0360e01b8152905183926001600160a01b0316916308d63e039160048083019260209291908290030181865afa158015610626573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061064a9190612f00565b6000805460408051635f997c5b60e01b8152905193945084936001600160a01b0390921691635f997c5b916004808201926020929091908290030181865afa15801561069a573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106be9190612f1d565b905060008060009054906101000a90046001600160a01b03166001600160a01b031663ff4d18156040518163ffffffff1660e01b8152600401602060405180830381865afa158015610714573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107389190612f1d565b604051630ce010b960e21b815260048101849052602481018290529091506000906001600160a01b0385169063338042e490604401602060405180830381865afa15801561078a573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107ae9190612ede565b905080156107ce5760405162461bcd60e51b815260040161044c90612f36565b60065460ff16156107f15760405162461bcd60e51b815260040161044c90612f84565b6006805460ff191660011790556080890151511580610858575060608b0151805161081e90600190612fd1565b8151811061082e5761082e612fe4565b6020026020010151896080015160008151811061084d5761084d612fe4565b602002602001015114155b156108765760405163017f0be560e11b815260040160405180910390fd5b60006108818c611174565b9050600061088e8261125f565b60005460405163a655e99d60e01b81529192506001600160a01b03169063a655e99d906108bf90859060040161307f565b60006040518083038186803b1580156108d757600080fd5b505afa1580156108eb573d6000803e3d6000fd5b5050825160ff166000908152600560205260409020546001600160a01b0316915061096890505760405162461bcd60e51b815260206004820152602560248201527f5769746864726177207665726966696572206e6f742073657420666f7220676960448201526476656e206b60d81b606482015260840161044c565b8051610974908e61185a565b5060005460e0820151604051633d1a038960e01b81526001600160a01b0390921691633d1a0389916109ac9160040190815260200190565b600060405180830381600087803b1580156109c657600080fd5b505af11580156109da573d6000803e3d6000fd5b505050506109e78b611b85565b610a335760405162461bcd60e51b815260206004820181905260248201527f445650207769746864726177616c2070726f63657373696e67206661696c6564604482015260640161044c565b600054604051636052a29760e11b81526001600160a01b039091169063c0a5452e90610a66908590600590600401613092565b600060405180830381600087803b158015610a8057600080fd5b505af1158015610a94573d6000803e3d6000fd5b5050505060008054906101000a90046001600160a01b03166001600160a01b03166304e72b3c828e8d8d6040518563ffffffff1660e01b8152600401610add94939291906131c8565b600060405180830381600087803b158015610af757600080fd5b505af1158015610b0b573d6000803e3d6000fd5b505060005460e084015160405163697b170360e01b81526001600160a01b03909216935063697b17039250610b469160040190815260200190565b600060405180830381600087803b158015610b6057600080fd5b505af1158015610b74573d6000803e3d6000fd5b505050507fef4e5bb37d73b84e8b71e2f77ac10ac3f7fca5b7186a264695abf185127b7a288b33604051610ba99291906132e9565b60405180910390a150506006805460ff191690555060019a9950505050505050505050565b60008054604080516308d63e0360e01b8152905183926001600160a01b0316916308d63e039160048083019260209291908290030181865afa158015610c18573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c3c9190612f00565b6000805460408051635f997c5b60e01b8152905193945084936001600160a01b0390921691635f997c5b916004808201926020929091908290030181865afa158015610c8c573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610cb09190612f1d565b905060008060009054906101000a90046001600160a01b03166001600160a01b031663ff4d18156040518163ffffffff1660e01b8152600401602060405180830381865afa158015610d06573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d2a9190612f1d565b604051630ce010b960e21b815260048101849052602481018290529091506000906001600160a01b0385169063338042e490604401602060405180830381865afa158015610d7c573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610da09190612ede565b90508015610dc05760405162461bcd60e51b815260040161044c90612f36565b60065460ff1615610de35760405162461bcd60e51b815260040161044c90612f84565b6006805460ff191660011790556000610dfb8b611c09565b90506000610e088261125f565b60005460405163a655e99d60e01b81529192506001600160a01b03169063a655e99d90610e3990859060040161307f565b60006040518083038186803b158015610e5157600080fd5b505afa158015610e65573d6000803e3d6000fd5b5050825160ff166000908152600460205260409020546001600160a01b03169150610ee090505760405162461bcd60e51b8152602060048201526024808201527f4465706f736974207665726966696572206e6f742073657420666f7220676976604482015263656e206b60e01b606482015260840161044c565b8051610eec908d611ce8565b5060005460e0820151604051633d1a038960e01b81526001600160a01b0390921691633d1a038991610f249160040190815260200190565b600060405180830381600087803b158015610f3e57600080fd5b505af1158015610f52573d6000803e3d6000fd5b50505060608d0151805160009250610f6c90600190612fd1565b81518110610f7c57610f7c612fe4565b60200260200101519050610f8f81611fbc565b610fdb5760405162461bcd60e51b815260206004820152601d60248201527f445650206465706f7369742070726f63657373696e67206661696c6564000000604482015260640161044c565b600054604051636052a29760e11b81526001600160a01b039091169063c0a5452e9061100d9086906004908101613092565b600060405180830381600087803b15801561102757600080fd5b505af115801561103b573d6000803e3d6000fd5b5050505060008054906101000a90046001600160a01b03166001600160a01b03166304e72b3c838e8e8e6040518563ffffffff1660e01b815260040161108494939291906131c8565b600060405180830381600087803b15801561109e57600080fd5b505af11580156110b2573d6000803e3d6000fd5b505060005460e085015160405163697b170360e01b81526001600160a01b03909216935063697b170392506110ed9160040190815260200190565b600060405180830381600087803b15801561110757600080fd5b505af115801561111b573d6000803e3d6000fd5b50505050807fcd8e96b33eeeeb3640fb32fa87c483e59720b7e07831b8c766b4fab0f739cd803360405161114f91906125f8565b60405180910390a250506006805460ff191690555060019a9950505050505050505050565b61117c61247a565b61118461247a565b8251815260208084015190820152604080840151908201526060830151516000906111b190600190612fd1565b6001600160401b038111156111c8576111c8612649565b6040519080825280602002602001820160405280156111f1578160200160208202803683370190505b50905060005b60018560600151516112099190612fd1565b811015611253578460600151818151811061122657611226612fe4565b602002602001015182828151811061124057611240612fe4565b60209081029190910101526001016111f7565b50606082015292915050565b6112b8604051806101400160405280600060ff1681526020016000815260200160608152602001606081526020016060815260200160608152602001600081526020016000815260200160608152602001606081525090565b6112c182612049565b60ff168082526060830151516020830152806001600160401b038111156112ea576112ea612649565b604051908082528060200260200182016040528015611313578160200160208202803683370190505b50604083015260005b8181101561136b578360600151818151811061133a5761133a612fe4565b60200260200101518360400151828151811061135857611358612fe4565b602090810291909101015260010161131c565b50806001600160401b0381111561138457611384612649565b6040519080825280602002602001820160405280156113ad578160200160208202803683370190505b5060608301528060005b8281101561140f5760608501516113ce8284613313565b815181106113de576113de612fe4565b6020026020010151846060015182815181106113fc576113fc612fe4565b60209081029190910101526001016113b7565b50816001600160401b0381111561142857611428612649565b60405190808252806020026020018201604052801561146d57816020015b60408051808201909152600080825260208201528152602001906001900390816114465790505b5060808401526000611480836002613326565b905060005b8381101561153c57604051806040016040528087606001518360026114aa9190613326565b6114b49086613313565b815181106114c4576114c4612fe4565b6020026020010151815260200187606001518360026114e39190613326565b6114ed9086613313565b6114f8906001613313565b8151811061150857611508612fe4565b60200260200101518152508560800151828151811061152957611529612fe4565b6020908102919091010152600101611485565b50826001600160401b0381111561155557611555612649565b60405190808252806020026020018201604052801561159a57816020015b60408051808201909152600080825260208201528152602001906001900390816115735790505b5060a085015260006115ad846004613326565b905060005b8481101561166957604051806040016040528088606001518360026115d79190613326565b6115e19086613313565b815181106115f1576115f1612fe4565b6020026020010151815260200188606001518360026116109190613326565b61161a9086613313565b611625906001613313565b8151811061163557611635612fe4565b60200260200101518152508660a00151828151811061165657611656612fe4565b60209081029190910101526001016115b2565b506000611677856006613326565b90508660600151818151811061168f5761168f612fe4565b602090810291909101015160c087015260608701516116af826001613313565b815181106116bf576116bf612fe4565b60200260200101518660e0018181525050846001600160401b038111156116e8576116e8612649565b604051908082528060200260200182016040528015611711578160200160208202803683370190505b506101008701526000611725866006613326565b611730906002613313565b905060005b8681101561178e57606089015161174c8284613313565b8151811061175c5761175c612fe4565b6020026020010151886101000151828151811061177b5761177b612fe4565b6020908102919091010152600101611735565b50856001600160401b038111156117a7576117a7612649565b6040519080825280602002602001820160405280156117d0578160200160208202803683370190505b5061012088015260006117e4876007613326565b6117ef906002613313565b905060005b8781101561184d5760608a015161180b8284613313565b8151811061181b5761181b612fe4565b6020026020010151896101200151828151811061183a5761183a612fe4565b60209081029190910101526001016117f4565b5050505050505050919050565b60008260ff166002036119785760ff8316600090815260056020908152604091829020548451918501519285015160608601516001600160a01b039092169363f3f22e7293929091906118ac90612104565b6040518563ffffffff1660e01b81526004016118cb949392919061333d565b602060405180830381865afa1580156118e8573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061190c9190612ede565b6119735760405162461bcd60e51b815260206004820152603260248201527f76657269667950726f6f662072657475726e65642066616c73653a20496e76616044820152713634b2103bb4ba34323930bb90383937b7b360711b606482015260840161044c565b611b7c565b8260ff166003036119e75760ff8316600090815260056020908152604091829020548451918501519285015160608601516001600160a01b0390921693633564a25a93929091906119c8906121ba565b6040518563ffffffff1660e01b81526004016118cb949392919061339a565b8260ff16600403611a565760ff8316600090815260056020908152604091829020548451918501519285015160608601516001600160a01b039092169363e8cecdf69392909190611a379061226a565b6040518563ffffffff1660e01b81526004016118cb94939291906133eb565b8260ff16600503611ac55760ff8316600090815260056020908152604091829020548451918501519285015160608601516001600160a01b0390921693635547bd389392909190611aa69061231a565b6040518563ffffffff1660e01b81526004016118cb949392919061343c565b8260ff16600603611b345760ff8316600090815260056020908152604091829020548451918501519285015160608601516001600160a01b039092169363433dce169392909190611b15906123ca565b6040518563ffffffff1660e01b81526004016118cb949392919061348d565b60405162461bcd60e51b815260206004820181905260248201527f546861742076616c7565206f66206b206973206e6f7420737570706f72746564604482015260640161044c565b50600192915050565b6000600354600003611ba95760405162461bcd60e51b815260040161044c90612d15565b6001546001600160a01b0316611bd15760405162461bcd60e51b815260040161044c90612d46565b600154600354604051638a622d4960e01b81526001600160a01b03909216916000918391638a622d49916104b5918890600401612ec5565b611c1161247a565b611c1961247a565b825181526020808401519082015260408084015190820152606083015151600090611c4690600190612fd1565b6001600160401b03811115611c5d57611c5d612649565b604051908082528060200260200182016040528015611c86578160200160208202803683370190505b50905060005b6001856060015151611c9e9190612fd1565b8110156112535784606001518181518110611cbb57611cbb612fe4565b6020026020010151828281518110611cd557611cd5612fe4565b6020908102919091010152600101611c8c565b60008260ff16600203611e005760ff8316600090815260046020908152604091829020548451918501519285015160608601516001600160a01b039092169363f3f22e729392909190611d3a90612104565b6040518563ffffffff1660e01b8152600401611d59949392919061333d565b602060405180830381865afa158015611d76573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611d9a9190612ede565b6119735760405162461bcd60e51b815260206004820152603160248201527f76657269667950726f6f662072657475726e65642066616c73653a20496e76616044820152703634b2103232b837b9b4ba10383937b7b360791b606482015260840161044c565b8260ff16600303611e6f5760ff8316600090815260046020908152604091829020548451918501519285015160608601516001600160a01b0390921693633564a25a9392909190611e50906121ba565b6040518563ffffffff1660e01b8152600401611d59949392919061339a565b8260ff16600403611ede5760ff8316600090815260046020908152604091829020548451918501519285015160608601516001600160a01b039092169363e8cecdf69392909190611ebf9061226a565b6040518563ffffffff1660e01b8152600401611d5994939291906133eb565b8260ff16600503611f4d5760ff8316600090815260046020908152604091829020548451918501519285015160608601516001600160a01b0390921693635547bd389392909190611f2e9061231a565b6040518563ffffffff1660e01b8152600401611d59949392919061343c565b8260ff16600603611b345760ff8316600090815260046020908152604091829020548451918501519285015160608601516001600160a01b039092169363433dce169392909190611f9d906123ca565b6040518563ffffffff1660e01b8152600401611d59949392919061348d565b6000600354600003611fe05760405162461bcd60e51b815260040161044c90612d15565b6001546001600160a01b03166120085760405162461bcd60e51b815260040161044c90612d46565b600154600354604051631a95319160e01b81526001600160a01b03909216916000918391631a953191916104b5918890600401918252602082015260400190565b60608101515160009060128190036120645750600292915050565b80601a036120755750600392915050565b806022036120865750600492915050565b80602a036120975750600592915050565b806032036120a85750600692915050565b60405162461bcd60e51b815260206004820152602b60248201527f496e76616c6964207472616e736665722070726f6f66207075626c69635f736960448201526a0cedcc2d840d8cadccee8d60ab1b606482015260840161044c565b61210c6124b4565b815160131461216f5760405162461bcd60e51b815260206004820152602960248201527f496e707574206172726179206d75737420686176652065786163746c7920313960448201526820656c656d656e747360b81b606482015260840161044c565b60005b60138110156121b45782818151811061218d5761218d612fe4565b60200260200101518282601381106121a7576121a7612fe4565b6020020152600101612172565b50919050565b6121c26124d3565b8151601b146122255760405162461bcd60e51b815260206004820152602960248201527f496e707574206172726179206d75737420686176652065786163746c7920323760448201526820656c656d656e747360b81b606482015260840161044c565b60005b601b8110156121b45782818151811061224357612243612fe4565b60200260200101518282601b811061225d5761225d612fe4565b6020020152600101612228565b6122726124f2565b81516023146122d55760405162461bcd60e51b815260206004820152602960248201527f496e707574206172726179206d75737420686176652065786163746c7920333560448201526820656c656d656e747360b81b606482015260840161044c565b60005b60238110156121b4578281815181106122f3576122f3612fe4565b602002602001015182826023811061230d5761230d612fe4565b60200201526001016122d8565b612322612511565b8151602b146123855760405162461bcd60e51b815260206004820152602960248201527f496e707574206172726179206d75737420686176652065786163746c7920343360448201526820656c656d656e747360b81b606482015260840161044c565b60005b602b8110156121b4578281815181106123a3576123a3612fe4565b60200260200101518282602b81106123bd576123bd612fe4565b6020020152600101612388565b6123d2612530565b81516033146124355760405162461bcd60e51b815260206004820152602960248201527f496e707574206172726179206d75737420686176652065786163746c7920353160448201526820656c656d656e747360b81b606482015260840161044c565b60005b60338110156121b45782818151811061245357612453612fe4565b602002602001015182826033811061246d5761246d612fe4565b6020020152600101612438565b604051806080016040528061248d61254f565b815260200161249a61256d565b81526020016124a761254f565b8152602001606081525090565b6040518061026001604052806013906020820280368337509192915050565b604051806103600160405280601b906020820280368337509192915050565b6040518061046001604052806023906020820280368337509192915050565b604051806105600160405280602b906020820280368337509192915050565b6040518061066001604052806033906020820280368337509192915050565b60405180604001604052806002906020820280368337509192915050565b60405180604001604052806002905b61258461254f565b81526020019060019003908161257c5790505090565b6001600160a01b03811681146125af57600080fd5b50565b803560ff8116811461042357600080fd5b600080604083850312156125d657600080fd5b82356125e18161259a565b91506125ef602084016125b2565b90509250929050565b6001600160a01b0391909116815260200190565b60006020828403121561261e57600080fd5b5035919050565b60006020828403121561263757600080fd5b81356126428161259a565b9392505050565b634e487b7160e01b600052604160045260246000fd5b604080519081016001600160401b038111828210171561268157612681612649565b60405290565b60405160e081016001600160401b038111828210171561268157612681612649565b604051608081016001600160401b038111828210171561268157612681612649565b604051601f8201601f191681016001600160401b03811182821017156126f3576126f3612649565b604052919050565b60006040828403121561270d57600080fd5b61271561265f565b9050813581526020820135602082015292915050565b600082601f83011261273c57600080fd5b61274461265f565b80604084018581111561275657600080fd5b845b81811015612770578035845260209384019301612758565b509095945050505050565b600081830361010081121561278f57600080fd5b604051606081018181106001600160401b03821117156127b1576127b1612649565b6040529150816127c185856126fb565b81526080603f19830112156127d557600080fd5b6127dd61265f565b91506127ec856040860161272b565b82526127fb856080860161272b565b60208301528160208201526128138560c086016126fb565b6040820152505092915050565b60006001600160401b0382111561283957612839612649565b5060051b60200190565b600082601f83011261285457600080fd5b8135602061286961286483612820565b6126cb565b8083825260208201915060208460051b87010193508684111561288b57600080fd5b602086015b848110156128a75780358352918301918301612890565b509695505050505050565b60006101c082840312156128c557600080fd5b6128cd612687565b90506128d9838361277b565b81526101008201356001600160401b03808211156128f657600080fd5b61290285838601612843565b6020840152610120840135604084015261014084013591508082111561292757600080fd5b61293385838601612843565b606084015261016084013591508082111561294d57600080fd5b61295985838601612843565b608084015261018084013591508082111561297357600080fd5b5061298084828501612843565b60a0830152506101a082013560c082015292915050565b6000602082840312156129a957600080fd5b81356001600160401b038111156129bf57600080fd5b6104f8848285016128b2565b6000602082840312156129dd57600080fd5b612642826125b2565b600061012082840312156129f957600080fd5b612a016126a9565b9050612a0d838361272b565b8152604083605f840112612a2057600080fd5b612a2861265f565b8060c0850186811115612a3a57600080fd5b604086015b81811015612a6057612a51888261272b565b84526020909301928401612a3f565b50816020860152612a71878261272b565b6040860152505050506101008201356001600160401b03811115612a9457600080fd5b612aa084828501612843565b60608301525092915050565b6000601f83601f840112612abf57600080fd5b82356020612acf61286483612820565b82815260059290921b85018101918181019087841115612aee57600080fd5b8287015b84811015612b845780356001600160401b0380821115612b125760008081fd5b818a0191508a603f830112612b275760008081fd5b85820135604082821115612b3d57612b3d612649565b612b4e828b01601f191689016126cb565b92508183528c81838601011115612b655760008081fd5b8181850189850137506000908201870152845250918301918301612af2565b50979650505050505050565b60008083601f840112612ba257600080fd5b5081356001600160401b03811115612bb957600080fd5b602083019150836020828501011115612bd157600080fd5b9250929050565b600080600080600060808688031215612bf057600080fd5b85356001600160401b0380821115612c0757600080fd5b612c1389838a016129e6565b96506020880135915080821115612c2957600080fd5b612c3589838a01612aac565b95506040880135915080821115612c4b57600080fd5b612c5789838a016128b2565b94506060880135915080821115612c6d57600080fd5b50612c7a88828901612b90565b969995985093965092949392505050565b60008060008060608587031215612ca157600080fd5b84356001600160401b0380821115612cb857600080fd5b612cc4888389016129e6565b95506020870135915080821115612cda57600080fd5b612ce688838901612aac565b94506040870135915080821115612cfc57600080fd5b50612d0987828801612b90565b95989497509550505050565b60208082526017908201527615985d5b1d1259081b9bdd081a5b9a5d1a585b1a5e9959604a1b604082015260600190565b602080825260139082015272111d9c081859191c995cdcc81b9bdd081cd95d606a1b604082015260600190565b8060005b6002811015612d96578151845260209384019390910190600101612d77565b50505050565b612db182825180518252602090810151910152565b6020810151612dc4604084018251612d73565b60200151612dd56080840182612d73565b5060400151805160c08301526020015160e090910152565b60008151808452602080850194506020840160005b83811015612e1e57815187529582019590820190600101612e02565b509495945050505050565b60006101c0612e39848451612d9c565b602083015181610100860152612e5182860182612ded565b91505060408301516101208501526060830151848203610140860152612e778282612ded565b9150506080830151848203610160860152612e928282612ded565b91505060a0830151848203610180860152612ead8282612ded565b91505060c08301516101a08501528091505092915050565b8281526040602082015260006104f86040830184612e29565b600060208284031215612ef057600080fd5b8151801515811461264257600080fd5b600060208284031215612f1257600080fd5b81516126428161259a565b600060208284031215612f2f57600080fd5b5051919050565b6020808252602e908201527f546f6b656e20697320696e20667265657a652073746174757320666f7220746860408201526d1a5cc81c185c9d1a58da5c185b9d60921b606082015260800190565b6020808252601f908201527f5265656e7472616e637947756172643a207265656e7472616e742063616c6c00604082015260600190565b634e487b7160e01b600052601160045260246000fd5b8181038181111561030957610309612fbb565b634e487b7160e01b600052603260045260246000fd5b8060005b6002811015612d9657613012848351612d73565b6040939093019260209190910190600101612ffe565b6000610120613038848451612d73565b602083015161304a6040860182612ffa565b50604083015161305d60c0860182612d73565b5060608301518161010086015261307682860182612ded565b95945050505050565b6020815260006126426020830184613028565b6040815260006130a56040830185613028565b9050600683106130c557634e487b7160e01b600052602160045260246000fd5b8260208301529392505050565b60008151808452602080850194506020840160005b83811015612e1e5761310487835180518252602090810151910152565b60409690960195908201906001016130e7565b600082825180855260208086019550808260051b8401018186016000805b8581101561319157601f1980888603018b5283518051808752845b8181101561316b578281018901518882018a01528801613150565b5086810188018590529b87019b601f019091169094018501935091840191600101613135565b509198975050505050505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b606081526131dc60608201865160ff169052565b60208501516080820152600060408601516101408060a08501526132046101a0850183612ded565b91506060880151605f19808685030160c08701526132228483612ded565b935060808a01519150808685030160e087015261323f84836130d2565b935060a08a0151915061010081878603018188015261325e85846130d2565b945060c08b01519250610120838189015260e08c015185890152818c0151945082888703016101608901526132938686612ded565b9550808c015194505050808685030161018087015250506132b48282612ded565b91505082810360208401526132c98187613117565b905082810360408401526132de81858761319f565b979650505050505050565b6040815260006132fc6040830185612e29565b905060018060a01b03831660208301529392505050565b8082018082111561030957610309612fbb565b808202811582820484141761030957610309612fbb565b610360810161334c8287612d73565b6133596040830186612ffa565b61336660c0830185612d73565b61010082018360005b601381101561338e57815183526020928301929091019060010161336f565b50505095945050505050565b61046081016133a98287612d73565b6133b66040830186612ffa565b6133c360c0830185612d73565b61010082018360005b601b81101561338e5781518352602092830192909101906001016133cc565b61056081016133fa8287612d73565b6134076040830186612ffa565b61341460c0830185612d73565b61010082018360005b602381101561338e57815183526020928301929091019060010161341d565b610660810161344b8287612d73565b6134586040830186612ffa565b61346560c0830185612d73565b61010082018360005b602b81101561338e57815183526020928301929091019060010161346e565b610760810161349c8287612d73565b6134a96040830186612ffa565b6134b660c0830185612d73565b61010082018360005b603381101561338e5781518352602092830192909101906001016134bf56fea264697066735822122015c01a2480b22c37f63b14133521ac731023738805913fecd954229e2c6447b564736f6c63430008180033",
+	Bin: "0x60a06040523480156200001157600080fd5b506040516200324c3803806200324c8339810160408190526200003491620000b9565b60016000556001600160a01b03821615806200005757506001600160a01b038116155b156200007657604051632f1e9e3f60e01b815260040160405180910390fd5b600180546001600160a01b0319166001600160a01b0393841617905516608052620000f1565b80516001600160a01b0381168114620000b457600080fd5b919050565b60008060408385031215620000cd57600080fd5b620000d8836200009c565b9150620000e8602084016200009c565b90509250929050565b60805161312362000129600039600081816101f801528181610266015281816103500152818161042c01526107e501526131236000f3fe608060405234801561001057600080fd5b50600436106100ba5760003560e01c8063104c9774146100bf5780634e2285f1146100e7578063506c7a7f146100f85780635cf983db1461012e5780637000a7c914610141578063860d3ece146101525780638d54447b14610165578063934dc830146101785780639ffba8d8146101a1578063b18c312d146101cd578063bb295d70146101e0578063c45a0155146101f3578063ecc920c51461021a578063ffa26f381461022d575b600080fd5b6100d26100cd3660046122d2565b610259565b60405190151581526020015b60405180910390f35b6003546040519081526020016100de565b610121610106366004612307565b6005602052600090815260409020546001600160a01b031681565b6040516100de9190612322565b6100d261013c3660046122d2565b610343565b6002546001600160a01b0316610121565b6100d2610160366004612336565b61041f565b6100d26101733660046126a1565b6104e1565b610121610186366004612307565b6004602052600090815260409020546001600160a01b031681565b6101216101af366004612307565b60ff166000908152600560205260409020546001600160a01b031690565b6100d26101db3660046126d5565b6107d8565b6100d26101ee3660046128d9565b6108a5565b6101217f000000000000000000000000000000000000000000000000000000000000000081565b6100d261022836600461298c565b610d2b565b61012161023b366004612307565b60ff166000908152600460205260409020546001600160a01b031690565b6000336001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146102a457604051631f97eea360e01b815260040160405180910390fd5b6001600160a01b0383166102cb57604051632f1e9e3f60e01b815260040160405180910390fd5b6102d482611269565b60ff821660008181526004602090815260409182902080546001600160a01b0319166001600160a01b038816908117909155915192835290917f90bf83a5393fae16f25bdee6a57fd4fe5cf4f11c94018118f9b0faf439a9a9f791015b60405180910390a25060015b92915050565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461038e57604051631f97eea360e01b815260040160405180910390fd5b6001600160a01b0383166103b557604051632f1e9e3f60e01b815260040160405180910390fd5b6103be82611269565b60ff821660008181526005602090815260409182902080546001600160a01b0319166001600160a01b038816908117909155915192835290917f5abfd12c330e3c44221f811f765f2b5d367a4401414b4aed3f7d9540ba1689889101610331565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461046a57604051631f97eea360e01b815260040160405180910390fd5b6001600160a01b03821661049157604051632f1e9e3f60e01b815260040160405180910390fd5b600280546001600160a01b0319166001600160a01b0384169081179091556040517fdb99bde31bcfd8eebc1262251d145c2a77f564a2ce500fd414b6c7429d1ddf0290600090a25060015b919050565b60006104eb6112a9565b600154604080516308d63e0360e01b815290516000926001600160a01b0316916308d63e039160048083019260209291908290030181865afa158015610535573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105599190612a16565b60015460408051635f997c5b60e01b8152905192935083926000926001600160a01b031691635f997c5b9160048083019260209291908290030181865afa1580156105a8573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105cc9190612a33565b90506000600160009054906101000a90046001600160a01b03166001600160a01b031663ff4d18156040518163ffffffff1660e01b8152600401602060405180830381865afa158015610623573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106479190612a33565b604051630ce010b960e21b815260048101849052602481018290529091506000906001600160a01b0385169063338042e490604401602060405180830381865afa158015610699573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106bd9190612a4c565b905080156106de5760405163452191b960e11b815260040160405180910390fd5b60006106e86112d3565b60208101518151604051637997ad5b60e01b81529293506001600160a01b0390911691637997ad5b9161071f918c90600401612bba565b6020604051808303816000875af115801561073e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107629190612a4c565b61077f576040516336d9a30160e21b815260040160405180910390fd5b6001546040517fe3689f3630c49fe2e0f50538bcb6c250827c7925244908a7c008a828240e7349916107bc918b916001600160a01b031690612bd3565b60405180910390a1600196505050505050506104dc6001600055565b6000336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461082357604051631f97eea360e01b815260040160405180910390fd5b60035415610844576040516355edd41d60e01b815260040160405180910390fd5b816000036108655760405163c10dc48360e01b815260040160405180910390fd5b60038290556040518281527fdb618d0e353567af95408433e97548cb1b8df8bfedd1080d65ab505ac46fc3709060200160405180910390a1506001919050565b60006108af6112a9565b600154604080516308d63e0360e01b815290516000926001600160a01b0316916308d63e039160048083019260209291908290030181865afa1580156108f9573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061091d9190612a16565b60015460408051635f997c5b60e01b8152905192935083926000926001600160a01b031691635f997c5b9160048083019260209291908290030181865afa15801561096c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906109909190612a33565b90506000600160009054906101000a90046001600160a01b03166001600160a01b031663ff4d18156040518163ffffffff1660e01b8152600401602060405180830381865afa1580156109e7573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a0b9190612a33565b604051630ce010b960e21b815260048101849052602481018290529091506000906001600160a01b0385169063338042e490604401602060405180830381865afa158015610a5d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a819190612a4c565b90508015610aa25760405163452191b960e11b815260040160405180910390fd5b8a6060015151600003610ac85760405163f031642f60e01b815260040160405180910390fd5b610ad28b8a611357565b6000610adc6112d3565b9050600080610aec8e6005611436565b60015460e0820151604051633d1a038960e01b81529395509193506001600160a01b031691633d1a038991610b279160040190815260200190565b600060405180830381600087803b158015610b4157600080fd5b505af1158015610b55573d6000803e3d6000fd5b50505050610b63838d6114ee565b610b80576040516336d9a30160e21b815260040160405180910390fd5b600154604051636052a29760e11b81526001600160a01b039091169063c0a5452e90610bb3908590600590600401612c79565b600060405180830381600087803b158015610bcd57600080fd5b505af1158015610be1573d6000803e3d6000fd5b50505050600160009054906101000a90046001600160a01b03166001600160a01b03166304e72b3c828f8e8e6040518563ffffffff1660e01b8152600401610c2c9493929190612daf565b600060405180830381600087803b158015610c4657600080fd5b505af1158015610c5a573d6000803e3d6000fd5b505060015460e084015160405163697b170360e01b81526001600160a01b03909216935063697b17039250610c959160040190815260200190565b600060405180830381600087803b158015610caf57600080fd5b505af1158015610cc3573d6000803e3d6000fd5b50506001546040517f195ae53221a61012ab89b55f251e7106f01e8db70d8635f970ca1803fddf8d4c9350610d0492508f916001600160a01b031690612bd3565b60405180910390a1600198505050505050505050610d226001600055565b95945050505050565b6000610d356112a9565b600154604080516308d63e0360e01b815290516000926001600160a01b0316916308d63e039160048083019260209291908290030181865afa158015610d7f573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610da39190612a16565b60015460408051635f997c5b60e01b8152905192935083926000926001600160a01b031691635f997c5b9160048083019260209291908290030181865afa158015610df2573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e169190612a33565b90506000600160009054906101000a90046001600160a01b03166001600160a01b031663ff4d18156040518163ffffffff1660e01b8152600401602060405180830381865afa158015610e6d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e919190612a33565b604051630ce010b960e21b815260048101849052602481018290529091506000906001600160a01b0385169063338042e490604401602060405180830381865afa158015610ee3573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610f079190612a4c565b90508015610f285760405163452191b960e11b815260040160405180910390fd5b896060015151600003610f4e5760405163f031642f60e01b815260040160405180910390fd5b60608a0151805160009190610f6590600190612ee6565b81518110610f7557610f75612ef9565b6020026020010151905080600003610fa057604051631954aaf360e11b815260040160405180910390fd5b6000610faa6112d3565b9050600080610fba8e6004611436565b60015460e0820151604051633d1a038960e01b81529395509193506001600160a01b031691633d1a038991610ff59160040190815260200190565b600060405180830381600087803b15801561100f57600080fd5b505af1158015611023573d6000803e3d6000fd5b5050505060208301518351604051631a95319160e01b81526004810191909152602481018690526001600160a01b0390911690631a953191906044016020604051808303816000875af115801561107e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906110a29190612a4c565b6110bf576040516336d9a30160e21b815260040160405180910390fd5b600154604051636052a29760e11b81526001600160a01b039091169063c0a5452e906110f19085906004908101612c79565b600060405180830381600087803b15801561110b57600080fd5b505af115801561111f573d6000803e3d6000fd5b50505050600160009054906101000a90046001600160a01b03166001600160a01b03166304e72b3c828f8f8f6040518563ffffffff1660e01b815260040161116a9493929190612daf565b600060405180830381600087803b15801561118457600080fd5b505af1158015611198573d6000803e3d6000fd5b505060015460e084015160405163697b170360e01b81526001600160a01b03909216935063697b170392506111d39160040190815260200190565b600060405180830381600087803b1580156111ed57600080fd5b505af1158015611201573d6000803e3d6000fd5b50506001546040518793507f9a18bbe6f48b4814e12168a78ed969692c61ed924674ad8e91327254be4fda8d9250611242916001600160a01b031690612322565b60405180910390a2600199505050505050505050506112616001600055565b949350505050565b60028160ff16108061127e575060068160ff16115b156112a657604051630439c09560e21b815260ff821660048201526024015b60405180910390fd5b50565b6002600054036112cc57604051633ee5aeb560e01b815260040160405180910390fd5b6002600055565b604080518082019091526000808252602082015250604080518082019091526003548082526002546001600160a01b0316602083015260000361132957604051630f22739b60e31b815260040160405180910390fd5b60208101516001600160a01b0316611354576040516321f9109160e21b815260040160405180910390fd5b90565b81606001515160000361137d5760405163f031642f60e01b815260040160405180910390fd5b8060800151516000036113a357604051630d8d767b60e21b815260040160405180910390fd5b600081608001516000815181106113bc576113bc612ef9565b60200260200101519050806000036113e757604051633fa4334d60e11b815260040160405180910390fd5b606083015180516113fa90600190612ee6565b8151811061140a5761140a612ef9565b602002602001015181146114315760405163017f0be560e11b815260040160405180910390fd5b505050565b61143e612136565b611446612170565b61144f8461156e565b915061145a82611666565b60015460405163a655e99d60e01b81529192506001600160a01b03169063a655e99d9061148b908590600401612f0f565b60006040518083038186803b1580156114a357600080fd5b505afa1580156114b7573d6000803e3d6000fd5b5050825160ff1660009081526020869052604090205483516114e793506001600160a01b03909116915086611c10565b9250929050565b60208201518251604051638a622d4960e01b81526000926001600160a01b031691638a622d499161152491908690600401612bba565b6020604051808303816000875af1158015611543573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906115679190612a4c565b9392505050565b611576612136565b81606001515160000361159c5760405163f031642f60e01b815260040160405180910390fd5b8151815260208083015190820152604080830151908201526060820151516000906115c990600190612ee6565b6001600160401b038111156115e0576115e0612353565b604051908082528060200260200182016040528015611609578160200160208202803683370190505b50905060005b815181101561165b578360600151818151811061162e5761162e612ef9565b602002602001015182828151811061164857611648612ef9565b602090810291909101015260010161160f565b506060820152919050565b61166e612170565b61167782611e71565b60ff168082526060830151516020830152806001600160401b038111156116a0576116a0612353565b6040519080825280602002602001820160405280156116c9578160200160208202803683370190505b50604083015260005b8181101561172157836060015181815181106116f0576116f0612ef9565b60200260200101518360400151828151811061170e5761170e612ef9565b60209081029190910101526001016116d2565b50806001600160401b0381111561173a5761173a612353565b604051908082528060200260200182016040528015611763578160200160208202803683370190505b5060608301528060005b828110156117c55760608501516117848284612f22565b8151811061179457611794612ef9565b6020026020010151846060015182815181106117b2576117b2612ef9565b602090810291909101015260010161176d565b50816001600160401b038111156117de576117de612353565b60405190808252806020026020018201604052801561182357816020015b60408051808201909152600080825260208201528152602001906001900390816117fc5790505b5060808401526000611836836002612f35565b905060005b838110156118f257604051806040016040528087606001518360026118609190612f35565b61186a9086612f22565b8151811061187a5761187a612ef9565b6020026020010151815260200187606001518360026118999190612f35565b6118a39086612f22565b6118ae906001612f22565b815181106118be576118be612ef9565b6020026020010151815250856080015182815181106118df576118df612ef9565b602090810291909101015260010161183b565b50826001600160401b0381111561190b5761190b612353565b60405190808252806020026020018201604052801561195057816020015b60408051808201909152600080825260208201528152602001906001900390816119295790505b5060a08501526000611963846004612f35565b905060005b84811015611a1f576040518060400160405280886060015183600261198d9190612f35565b6119979086612f22565b815181106119a7576119a7612ef9565b6020026020010151815260200188606001518360026119c69190612f35565b6119d09086612f22565b6119db906001612f22565b815181106119eb576119eb612ef9565b60200260200101518152508660a001518281518110611a0c57611a0c612ef9565b6020908102919091010152600101611968565b506000611a2d856006612f35565b905086606001518181518110611a4557611a45612ef9565b602090810291909101015160c08701526060870151611a65826001612f22565b81518110611a7557611a75612ef9565b60200260200101518660e0018181525050846001600160401b03811115611a9e57611a9e612353565b604051908082528060200260200182016040528015611ac7578160200160208202803683370190505b506101008701526000611adb866006612f35565b611ae6906002612f22565b905060005b86811015611b44576060890151611b028284612f22565b81518110611b1257611b12612ef9565b60200260200101518861010001518281518110611b3157611b31612ef9565b6020908102919091010152600101611aeb565b50856001600160401b03811115611b5d57611b5d612353565b604051908082528060200260200182016040528015611b86578160200160208202803683370190505b506101208801526000611b9a876007612f35565b611ba5906002612f22565b905060005b87811015611c035760608a0151611bc18284612f22565b81518110611bd157611bd1612ef9565b60200260200101518961012001518281518110611bf057611bf0612ef9565b6020908102919091010152600101611baa565b5050505050505050919050565b6001600160a01b038316611c3c57604051639a38e1e760e01b815260ff8316600482015260240161129d565b60008260ff16600203611cdb57836001600160a01b031663f3f22e72836000015184602001518560400151611c748760600151611eec565b6040518563ffffffff1660e01b8152600401611c939493929190612f4c565b602060405180830381865afa158015611cb0573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611cd49190612a4c565b9050611e4d565b8260ff16600303611d3057836001600160a01b0316633564a25a836000015184602001518560400151611d118760600151611f66565b6040518563ffffffff1660e01b8152600401611c939493929190612fa9565b8260ff16600403611d8557836001600160a01b031663e8cecdf6836000015184602001518560400151611d668760600151611fda565b6040518563ffffffff1660e01b8152600401611c939493929190612ffa565b8260ff16600503611dda57836001600160a01b0316635547bd38836000015184602001518560400151611dbb876060015161204e565b6040518563ffffffff1660e01b8152600401611c93949392919061304b565b8260ff16600603611e2f57836001600160a01b031663433dce16836000015184602001518560400151611e1087606001516120c2565b6040518563ffffffff1660e01b8152600401611c93949392919061309c565b604051630439c09560e21b815260ff8416600482015260240161129d565b80611e6b576040516310b832b960e31b815260040160405180910390fd5b50505050565b6060810151516000906012819003611e8c5750600292915050565b80601a03611e9d5750600392915050565b80602203611eae5750600492915050565b80602a03611ebf5750600592915050565b80603203611ed05750600692915050565b6040516340ec22cf60e11b81526004810182905260240161129d565b611ef46121c6565b8151601314611f1b5781516040516340ec22cf60e11b815260040161129d91815260200190565b60005b6013811015611f6057828181518110611f3957611f39612ef9565b6020026020010151828260138110611f5357611f53612ef9565b6020020152600101611f1e565b50919050565b611f6e6121e5565b8151601b14611f955781516040516340ec22cf60e11b815260040161129d91815260200190565b60005b601b811015611f6057828181518110611fb357611fb3612ef9565b60200260200101518282601b8110611fcd57611fcd612ef9565b6020020152600101611f98565b611fe2612204565b81516023146120095781516040516340ec22cf60e11b815260040161129d91815260200190565b60005b6023811015611f605782818151811061202757612027612ef9565b602002602001015182826023811061204157612041612ef9565b602002015260010161200c565b612056612223565b8151602b1461207d5781516040516340ec22cf60e11b815260040161129d91815260200190565b60005b602b811015611f605782818151811061209b5761209b612ef9565b60200260200101518282602b81106120b5576120b5612ef9565b6020020152600101612080565b6120ca612242565b81516033146120f15781516040516340ec22cf60e11b815260040161129d91815260200190565b60005b6033811015611f605782818151811061210f5761210f612ef9565b602002602001015182826033811061212957612129612ef9565b60200201526001016120f4565b6040518060800160405280612149612261565b815260200161215661227f565b8152602001612163612261565b8152602001606081525090565b604051806101400160405280600060ff1681526020016000815260200160608152602001606081526020016060815260200160608152602001600081526020016000815260200160608152602001606081525090565b6040518061026001604052806013906020820280368337509192915050565b604051806103600160405280601b906020820280368337509192915050565b6040518061046001604052806023906020820280368337509192915050565b604051806105600160405280602b906020820280368337509192915050565b6040518061066001604052806033906020820280368337509192915050565b60405180604001604052806002906020820280368337509192915050565b60405180604001604052806002905b612296612261565b81526020019060019003908161228e5790505090565b6001600160a01b03811681146112a657600080fd5b803560ff811681146104dc57600080fd5b600080604083850312156122e557600080fd5b82356122f0816122ac565b91506122fe602084016122c1565b90509250929050565b60006020828403121561231957600080fd5b611567826122c1565b6001600160a01b0391909116815260200190565b60006020828403121561234857600080fd5b8135611567816122ac565b634e487b7160e01b600052604160045260246000fd5b604080519081016001600160401b038111828210171561238b5761238b612353565b60405290565b60405160e081016001600160401b038111828210171561238b5761238b612353565b604051608081016001600160401b038111828210171561238b5761238b612353565b604051601f8201601f191681016001600160401b03811182821017156123fd576123fd612353565b604052919050565b60006040828403121561241757600080fd5b61241f612369565b9050813581526020820135602082015292915050565b600082601f83011261244657600080fd5b61244e612369565b80604084018581111561246057600080fd5b845b8181101561247a578035845260209384019301612462565b509095945050505050565b600081830361010081121561249957600080fd5b604051606081018181106001600160401b03821117156124bb576124bb612353565b6040529150816124cb8585612405565b81526080603f19830112156124df57600080fd5b6124e7612369565b91506124f68560408601612435565b82526125058560808601612435565b602083015281602082015261251d8560c08601612405565b6040820152505092915050565b60006001600160401b0382111561254357612543612353565b5060051b60200190565b600082601f83011261255e57600080fd5b8135602061257361256e8361252a565b6123d5565b8083825260208201915060208460051b87010193508684111561259557600080fd5b602086015b848110156125b1578035835291830191830161259a565b509695505050505050565b60006101c082840312156125cf57600080fd5b6125d7612391565b90506125e38383612485565b81526101008201356001600160401b038082111561260057600080fd5b61260c8583860161254d565b6020840152610120840135604084015261014084013591508082111561263157600080fd5b61263d8583860161254d565b606084015261016084013591508082111561265757600080fd5b6126638583860161254d565b608084015261018084013591508082111561267d57600080fd5b5061268a8482850161254d565b60a0830152506101a082013560c082015292915050565b6000602082840312156126b357600080fd5b81356001600160401b038111156126c957600080fd5b611261848285016125bc565b6000602082840312156126e757600080fd5b5035919050565b6000610120828403121561270157600080fd5b6127096123b3565b90506127158383612435565b8152604083605f84011261272857600080fd5b612730612369565b8060c085018681111561274257600080fd5b604086015b81811015612768576127598882612435565b84526020909301928401612747565b508160208601526127798782612435565b6040860152505050506101008201356001600160401b0381111561279c57600080fd5b6127a88482850161254d565b60608301525092915050565b6000601f83601f8401126127c757600080fd5b823560206127d761256e8361252a565b82815260059290921b850181019181810190878411156127f657600080fd5b8287015b8481101561288c5780356001600160401b038082111561281a5760008081fd5b818a0191508a603f83011261282f5760008081fd5b8582013560408282111561284557612845612353565b612856828b01601f191689016123d5565b92508183528c8183860101111561286d5760008081fd5b81818501898501375060009082018701528452509183019183016127fa565b50979650505050505050565b60008083601f8401126128aa57600080fd5b5081356001600160401b038111156128c157600080fd5b6020830191508360208285010111156114e757600080fd5b6000806000806000608086880312156128f157600080fd5b85356001600160401b038082111561290857600080fd5b61291489838a016126ee565b9650602088013591508082111561292a57600080fd5b61293689838a016127b4565b9550604088013591508082111561294c57600080fd5b61295889838a016125bc565b9450606088013591508082111561296e57600080fd5b5061297b88828901612898565b969995985093965092949392505050565b600080600080606085870312156129a257600080fd5b84356001600160401b03808211156129b957600080fd5b6129c5888389016126ee565b955060208701359150808211156129db57600080fd5b6129e7888389016127b4565b945060408701359150808211156129fd57600080fd5b50612a0a87828801612898565b95989497509550505050565b600060208284031215612a2857600080fd5b8151611567816122ac565b600060208284031215612a4557600080fd5b5051919050565b600060208284031215612a5e57600080fd5b8151801515811461156757600080fd5b8060005b6002811015611e6b578151845260209384019390910190600101612a72565b612aa682825180518252602090810151910152565b6020810151612ab9604084018251612a6e565b60200151612aca6080840182612a6e565b5060400151805160c08301526020015160e090910152565b60008151808452602080850194506020840160005b83811015612b1357815187529582019590820190600101612af7565b509495945050505050565b60006101c0612b2e848451612a91565b602083015181610100860152612b4682860182612ae2565b91505060408301516101208501526060830151848203610140860152612b6c8282612ae2565b9150506080830151848203610160860152612b878282612ae2565b91505060a0830151848203610180860152612ba28282612ae2565b91505060c08301516101a08501528091505092915050565b8281526040602082015260006112616040830184612b1e565b604081526000612be66040830185612b1e565b905060018060a01b03831660208301529392505050565b8060005b6002811015611e6b57612c15848351612a6e565b6040939093019260209190910190600101612c01565b6000610120612c3b848451612a6e565b6020830151612c4d6040860182612bfd565b506040830151612c6060c0860182612a6e565b50606083015181610100860152610d2282860182612ae2565b604081526000612c8c6040830185612c2b565b905060068310612cac57634e487b7160e01b600052602160045260246000fd5b8260208301529392505050565b60008151808452602080850194506020840160005b83811015612b1357612ceb87835180518252602090810151910152565b6040969096019590820190600101612cce565b600082825180855260208086019550808260051b8401018186016000805b85811015612d7857601f1980888603018b5283518051808752845b81811015612d52578281018901518882018a01528801612d37565b5086810188018590529b87019b601f019091169094018501935091840191600101612d1c565b509198975050505050505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b60608152612dc360608201865160ff169052565b60208501516080820152600060408601516101408060a0850152612deb6101a0850183612ae2565b91506060880151605f19808685030160c0870152612e098483612ae2565b935060808a01519150808685030160e0870152612e268483612cb9565b935060a08a01519150610100818786030181880152612e458584612cb9565b945060c08b01519250610120838189015260e08c015185890152818c015194508288870301610160890152612e7a8686612ae2565b9550808c01519450505080868503016101808701525050612e9b8282612ae2565b9150508281036020840152612eb08187612cfe565b90508281036040840152612ec5818587612d86565b979650505050505050565b634e487b7160e01b600052601160045260246000fd5b8181038181111561033d5761033d612ed0565b634e487b7160e01b600052603260045260246000fd5b6020815260006115676020830184612c2b565b8082018082111561033d5761033d612ed0565b808202811582820484141761033d5761033d612ed0565b6103608101612f5b8287612a6e565b612f686040830186612bfd565b612f7560c0830185612a6e565b61010082018360005b6013811015612f9d578151835260209283019290910190600101612f7e565b50505095945050505050565b6104608101612fb88287612a6e565b612fc56040830186612bfd565b612fd260c0830185612a6e565b61010082018360005b601b811015612f9d578151835260209283019290910190600101612fdb565b61056081016130098287612a6e565b6130166040830186612bfd565b61302360c0830185612a6e565b61010082018360005b6023811015612f9d57815183526020928301929091019060010161302c565b610660810161305a8287612a6e565b6130676040830186612bfd565b61307460c0830185612a6e565b61010082018360005b602b811015612f9d57815183526020928301929091019060010161307d565b61076081016130ab8287612a6e565b6130b86040830186612bfd565b6130c560c0830185612a6e565b61010082018360005b6033811015612f9d5781518352602092830192909101906001016130ce56fea2646970667358221220304ce304df44d19ec456997f97defa04f9ddcb3c579997defc7fb86fd1d162a064736f6c63430008180033",
 }
 
 // EnygmaDvpIntegration is an auto generated Go binding around an Ethereum contract.
@@ -227,10 +227,10 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackDepositToDvp(data []byte
 }
 
 // PackDepositToDvpVerifiers is the Go binding used to pack the parameters required for calling
-// the contract method with ID 0x71c8933a.
+// the contract method with ID 0x934dc830.
 //
-// Solidity: function depositToDvpVerifiers(uint256 ) view returns(address)
-func (enygmaDvpIntegration *EnygmaDvpIntegration) PackDepositToDvpVerifiers(arg0 *big.Int) []byte {
+// Solidity: function depositToDvpVerifiers(uint8 ) view returns(address)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) PackDepositToDvpVerifiers(arg0 uint8) []byte {
 	enc, err := enygmaDvpIntegration.abi.Pack("depositToDvpVerifiers", arg0)
 	if err != nil {
 		panic(err)
@@ -239,9 +239,9 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) PackDepositToDvpVerifiers(arg0
 }
 
 // UnpackDepositToDvpVerifiers is the Go binding that unpacks the parameters returned
-// from invoking the contract method with ID 0x71c8933a.
+// from invoking the contract method with ID 0x934dc830.
 //
-// Solidity: function depositToDvpVerifiers(uint256 ) view returns(address)
+// Solidity: function depositToDvpVerifiers(uint8 ) view returns(address)
 func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackDepositToDvpVerifiers(data []byte) (common.Address, error) {
 	out, err := enygmaDvpIntegration.abi.Unpack("depositToDvpVerifiers", data)
 	if err != nil {
@@ -427,10 +427,10 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvp(data []b
 }
 
 // PackWithdrawFromDvpVerifiers is the Go binding used to pack the parameters required for calling
-// the contract method with ID 0x78d2a05b.
+// the contract method with ID 0x506c7a7f.
 //
-// Solidity: function withdrawFromDvpVerifiers(uint256 ) view returns(address)
-func (enygmaDvpIntegration *EnygmaDvpIntegration) PackWithdrawFromDvpVerifiers(arg0 *big.Int) []byte {
+// Solidity: function withdrawFromDvpVerifiers(uint8 ) view returns(address)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) PackWithdrawFromDvpVerifiers(arg0 uint8) []byte {
 	enc, err := enygmaDvpIntegration.abi.Pack("withdrawFromDvpVerifiers", arg0)
 	if err != nil {
 		panic(err)
@@ -439,9 +439,9 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) PackWithdrawFromDvpVerifiers(a
 }
 
 // UnpackWithdrawFromDvpVerifiers is the Go binding that unpacks the parameters returned
-// from invoking the contract method with ID 0x78d2a05b.
+// from invoking the contract method with ID 0x506c7a7f.
 //
-// Solidity: function withdrawFromDvpVerifiers(uint256 ) view returns(address)
+// Solidity: function withdrawFromDvpVerifiers(uint8 ) view returns(address)
 func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvpVerifiers(data []byte) (common.Address, error) {
 	out, err := enygmaDvpIntegration.abi.Unpack("withdrawFromDvpVerifiers", data)
 	if err != nil {
@@ -451,30 +451,154 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvpVerifiers
 	return out0, err
 }
 
-// EnygmaDvpIntegrationDepositToDvpSuccesful represents a DepositToDvpSuccesful event raised by the EnygmaDvpIntegration contract.
-type EnygmaDvpIntegrationDepositToDvpSuccesful struct {
+// EnygmaDvpIntegrationConsolidateFundsSuccessful represents a ConsolidateFundsSuccessful event raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationConsolidateFundsSuccessful struct {
+	Transaction           IDvpProofReceipt
+	EnygmaContractAddress common.Address
+	Raw                   *types.Log // Blockchain specific contextual infos
+}
+
+const EnygmaDvpIntegrationConsolidateFundsSuccessfulEventName = "ConsolidateFundsSuccessful"
+
+// ContractEventName returns the user-defined event name.
+func (EnygmaDvpIntegrationConsolidateFundsSuccessful) ContractEventName() string {
+	return EnygmaDvpIntegrationConsolidateFundsSuccessfulEventName
+}
+
+// UnpackConsolidateFundsSuccessfulEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event ConsolidateFundsSuccessful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackConsolidateFundsSuccessfulEvent(log *types.Log) (*EnygmaDvpIntegrationConsolidateFundsSuccessful, error) {
+	event := "ConsolidateFundsSuccessful"
+	if log.Topics[0] != enygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(EnygmaDvpIntegrationConsolidateFundsSuccessful)
+	if len(log.Data) > 0 {
+		if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range enygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// EnygmaDvpIntegrationDepositToDvpSuccessful represents a DepositToDvpSuccessful event raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationDepositToDvpSuccessful struct {
 	Commitment            *big.Int
 	EnygmaContractAddress common.Address
 	Raw                   *types.Log // Blockchain specific contextual infos
 }
 
-const EnygmaDvpIntegrationDepositToDvpSuccesfulEventName = "DepositToDvpSuccesful"
+const EnygmaDvpIntegrationDepositToDvpSuccessfulEventName = "DepositToDvpSuccessful"
 
 // ContractEventName returns the user-defined event name.
-func (EnygmaDvpIntegrationDepositToDvpSuccesful) ContractEventName() string {
-	return EnygmaDvpIntegrationDepositToDvpSuccesfulEventName
+func (EnygmaDvpIntegrationDepositToDvpSuccessful) ContractEventName() string {
+	return EnygmaDvpIntegrationDepositToDvpSuccessfulEventName
 }
 
-// UnpackDepositToDvpSuccesfulEvent is the Go binding that unpacks the event data emitted
+// UnpackDepositToDvpSuccessfulEvent is the Go binding that unpacks the event data emitted
 // by contract.
 //
-// Solidity: event DepositToDvpSuccesful(uint256 indexed commitment, address enygmaContractAddress)
-func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackDepositToDvpSuccesfulEvent(log *types.Log) (*EnygmaDvpIntegrationDepositToDvpSuccesful, error) {
-	event := "DepositToDvpSuccesful"
+// Solidity: event DepositToDvpSuccessful(uint256 indexed commitment, address enygmaContractAddress)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackDepositToDvpSuccessfulEvent(log *types.Log) (*EnygmaDvpIntegrationDepositToDvpSuccessful, error) {
+	event := "DepositToDvpSuccessful"
 	if log.Topics[0] != enygmaDvpIntegration.abi.Events[event].ID {
 		return nil, errors.New("event signature mismatch")
 	}
-	out := new(EnygmaDvpIntegrationDepositToDvpSuccesful)
+	out := new(EnygmaDvpIntegrationDepositToDvpSuccessful)
+	if len(log.Data) > 0 {
+		if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range enygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// EnygmaDvpIntegrationDvpRegistered represents a DvpRegistered event raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationDvpRegistered struct {
+	DvpAddress common.Address
+	Raw        *types.Log // Blockchain specific contextual infos
+}
+
+const EnygmaDvpIntegrationDvpRegisteredEventName = "DvpRegistered"
+
+// ContractEventName returns the user-defined event name.
+func (EnygmaDvpIntegrationDvpRegistered) ContractEventName() string {
+	return EnygmaDvpIntegrationDvpRegisteredEventName
+}
+
+// UnpackDvpRegisteredEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event DvpRegistered(address indexed dvpAddress)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackDvpRegisteredEvent(log *types.Log) (*EnygmaDvpIntegrationDvpRegistered, error) {
+	event := "DvpRegistered"
+	if log.Topics[0] != enygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(EnygmaDvpIntegrationDvpRegistered)
+	if len(log.Data) > 0 {
+		if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
+			return nil, err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range enygmaDvpIntegration.abi.Events[event].Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	if err := abi.ParseTopics(out, indexed, log.Topics[1:]); err != nil {
+		return nil, err
+	}
+	out.Raw = log
+	return out, nil
+}
+
+// EnygmaDvpIntegrationVaultIdSet represents a VaultIdSet event raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationVaultIdSet struct {
+	VaultId *big.Int
+	Raw     *types.Log // Blockchain specific contextual infos
+}
+
+const EnygmaDvpIntegrationVaultIdSetEventName = "VaultIdSet"
+
+// ContractEventName returns the user-defined event name.
+func (EnygmaDvpIntegrationVaultIdSet) ContractEventName() string {
+	return EnygmaDvpIntegrationVaultIdSetEventName
+}
+
+// UnpackVaultIdSetEvent is the Go binding that unpacks the event data emitted
+// by contract.
+//
+// Solidity: event VaultIdSet(uint256 vaultId)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackVaultIdSetEvent(log *types.Log) (*EnygmaDvpIntegrationVaultIdSet, error) {
+	event := "VaultIdSet"
+	if log.Topics[0] != enygmaDvpIntegration.abi.Events[event].ID {
+		return nil, errors.New("event signature mismatch")
+	}
+	out := new(EnygmaDvpIntegrationVaultIdSet)
 	if len(log.Data) > 0 {
 		if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return nil, err
@@ -577,30 +701,30 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackVerifierWithdrawFromDvpR
 	return out, nil
 }
 
-// EnygmaDvpIntegrationWithdrawFromDvpSuccesful represents a WithdrawFromDvpSuccesful event raised by the EnygmaDvpIntegration contract.
-type EnygmaDvpIntegrationWithdrawFromDvpSuccesful struct {
+// EnygmaDvpIntegrationWithdrawFromDvpSuccessful represents a WithdrawFromDvpSuccessful event raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationWithdrawFromDvpSuccessful struct {
 	Transaction           IDvpProofReceipt
 	EnygmaContractAddress common.Address
 	Raw                   *types.Log // Blockchain specific contextual infos
 }
 
-const EnygmaDvpIntegrationWithdrawFromDvpSuccesfulEventName = "WithdrawFromDvpSuccesful"
+const EnygmaDvpIntegrationWithdrawFromDvpSuccessfulEventName = "WithdrawFromDvpSuccessful"
 
 // ContractEventName returns the user-defined event name.
-func (EnygmaDvpIntegrationWithdrawFromDvpSuccesful) ContractEventName() string {
-	return EnygmaDvpIntegrationWithdrawFromDvpSuccesfulEventName
+func (EnygmaDvpIntegrationWithdrawFromDvpSuccessful) ContractEventName() string {
+	return EnygmaDvpIntegrationWithdrawFromDvpSuccessfulEventName
 }
 
-// UnpackWithdrawFromDvpSuccesfulEvent is the Go binding that unpacks the event data emitted
+// UnpackWithdrawFromDvpSuccessfulEvent is the Go binding that unpacks the event data emitted
 // by contract.
 //
-// Solidity: event WithdrawFromDvpSuccesful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
-func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvpSuccesfulEvent(log *types.Log) (*EnygmaDvpIntegrationWithdrawFromDvpSuccesful, error) {
-	event := "WithdrawFromDvpSuccesful"
+// Solidity: event WithdrawFromDvpSuccessful((((uint256,uint256),(uint256[2],uint256[2]),(uint256,uint256)),uint256[],uint256,uint256[],uint256[],uint256[],uint256) transaction, address enygmaContractAddress)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvpSuccessfulEvent(log *types.Log) (*EnygmaDvpIntegrationWithdrawFromDvpSuccessful, error) {
+	event := "WithdrawFromDvpSuccessful"
 	if log.Topics[0] != enygmaDvpIntegration.abi.Events[event].ID {
 		return nil, errors.New("event signature mismatch")
 	}
-	out := new(EnygmaDvpIntegrationWithdrawFromDvpSuccesful)
+	out := new(EnygmaDvpIntegrationWithdrawFromDvpSuccessful)
 	if len(log.Data) > 0 {
 		if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return nil, err
@@ -622,13 +746,223 @@ func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackWithdrawFromDvpSuccesful
 // UnpackError attempts to decode the provided error data using user-defined
 // error definitions.
 func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackError(raw []byte) (any, error) {
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationDvpCallFailed"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationDvpCallFailedError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationDvpNotSet"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationDvpNotSetError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationEmptyPublicSignals"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationEmptyPublicSignalsError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationEmptyReceiptCommitments"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationEmptyReceiptCommitmentsError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationInvalidProof"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationInvalidProofError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationInvalidPublicSignalLength"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationInvalidPublicSignalLengthError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationInvalidVaultId"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationInvalidVaultIdError(raw[4:])
+	}
 	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationOnlyFactoryAllowed"].ID.Bytes()[:4]) {
 		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationOnlyFactoryAllowedError(raw[4:])
 	}
 	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationPaymentCommitmentMismatch"].ID.Bytes()[:4]) {
 		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationPaymentCommitmentMismatchError(raw[4:])
 	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationTokenFrozen"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationTokenFrozenError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationUnsupportedK"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationUnsupportedKError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationVaultIdAlreadySet"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationVaultIdAlreadySetError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationVaultIdNotInitialized"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationVaultIdNotInitializedError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationVerifierNotSet"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationVerifierNotSetError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationZeroAddress"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationZeroAddressError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationZeroHashCommitment"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationZeroHashCommitmentError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["EnygmaDvpIntegrationZeroPaymentCommitment"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackEnygmaDvpIntegrationZeroPaymentCommitmentError(raw[4:])
+	}
+	if bytes.Equal(raw[:4], enygmaDvpIntegration.abi.Errors["ReentrancyGuardReentrantCall"].ID.Bytes()[:4]) {
+		return enygmaDvpIntegration.UnpackReentrancyGuardReentrantCallError(raw[4:])
+	}
 	return nil, errors.New("Unknown error")
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationDvpCallFailed represents a EnygmaDvpIntegration__DvpCallFailed error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationDvpCallFailed struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__DvpCallFailed()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationDvpCallFailedErrorID() common.Hash {
+	return common.HexToHash("0xdb668c04621d156e30f7a3a7d41527ab6e7e408e4267170f5442e10870043507")
+}
+
+// UnpackEnygmaDvpIntegrationDvpCallFailedError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__DvpCallFailed()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationDvpCallFailedError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationDvpCallFailed, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationDvpCallFailed)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationDvpCallFailed", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationDvpNotSet represents a EnygmaDvpIntegration__DvpNotSet error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationDvpNotSet struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__DvpNotSet()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationDvpNotSetErrorID() common.Hash {
+	return common.HexToHash("0x87e4424416ec061212f21586933104ac3f6baf63c1170b41bc575ad2e93af85e")
+}
+
+// UnpackEnygmaDvpIntegrationDvpNotSetError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__DvpNotSet()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationDvpNotSetError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationDvpNotSet, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationDvpNotSet)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationDvpNotSet", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyPublicSignals represents a EnygmaDvpIntegration__EmptyPublicSignals error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyPublicSignals struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__EmptyPublicSignals()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyPublicSignalsErrorID() common.Hash {
+	return common.HexToHash("0xf031642fc16c73e9908b4ce773a606b4dfd957f6aa740925b5490d0b7b01c2c9")
+}
+
+// UnpackEnygmaDvpIntegrationEmptyPublicSignalsError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__EmptyPublicSignals()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationEmptyPublicSignalsError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyPublicSignals, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyPublicSignals)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationEmptyPublicSignals", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyReceiptCommitments represents a EnygmaDvpIntegration__EmptyReceiptCommitments error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyReceiptCommitments struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__EmptyReceiptCommitments()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyReceiptCommitmentsErrorID() common.Hash {
+	return common.HexToHash("0x3635d9eccb4d65d1e5262dc8be78702ee6db8300c38935949c9a0846e4fe32ce")
+}
+
+// UnpackEnygmaDvpIntegrationEmptyReceiptCommitmentsError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__EmptyReceiptCommitments()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationEmptyReceiptCommitmentsError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyReceiptCommitments, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationEmptyReceiptCommitments)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationEmptyReceiptCommitments", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidProof represents a EnygmaDvpIntegration__InvalidProof error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidProof struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidProof()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidProofErrorID() common.Hash {
+	return common.HexToHash("0x85c195c8d7a74ae294d763e05456269ea2eb0702366bbe7bf12772bab06ad8df")
+}
+
+// UnpackEnygmaDvpIntegrationInvalidProofError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidProof()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationInvalidProofError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidProof, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidProof)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationInvalidProof", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidPublicSignalLength represents a EnygmaDvpIntegration__InvalidPublicSignalLength error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidPublicSignalLength struct {
+	Length *big.Int
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidPublicSignalLength(uint256 length)
+func EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidPublicSignalLengthErrorID() common.Hash {
+	return common.HexToHash("0x81d8459e01b74141aca1f43e4fda38c46d332b558d0dc29f814b9325bab293db")
+}
+
+// UnpackEnygmaDvpIntegrationInvalidPublicSignalLengthError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidPublicSignalLength(uint256 length)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationInvalidPublicSignalLengthError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidPublicSignalLength, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidPublicSignalLength)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationInvalidPublicSignalLength", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidVaultId represents a EnygmaDvpIntegration__InvalidVaultId error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidVaultId struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidVaultId()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidVaultIdErrorID() common.Hash {
+	return common.HexToHash("0xc10dc4830a37e5cffb44ed93786b497938212ce163b8846b4649cf1ddddb92c9")
+}
+
+// UnpackEnygmaDvpIntegrationInvalidVaultIdError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__InvalidVaultId()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationInvalidVaultIdError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidVaultId, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationInvalidVaultId)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationInvalidVaultId", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // EnygmaDvpIntegrationEnygmaDvpIntegrationOnlyFactoryAllowed represents a EnygmaDvpIntegration__OnlyFactoryAllowed error raised by the EnygmaDvpIntegration contract.
@@ -672,6 +1006,215 @@ func EnygmaDvpIntegrationEnygmaDvpIntegrationPaymentCommitmentMismatchErrorID() 
 func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationPaymentCommitmentMismatchError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationPaymentCommitmentMismatch, error) {
 	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationPaymentCommitmentMismatch)
 	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationPaymentCommitmentMismatch", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationTokenFrozen represents a EnygmaDvpIntegration__TokenFrozen error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationTokenFrozen struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__TokenFrozen()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationTokenFrozenErrorID() common.Hash {
+	return common.HexToHash("0x8a4323720d1724ddb9a1ec4b445946c1e2fdb752bc52d68604ea92f78b2c0e24")
+}
+
+// UnpackEnygmaDvpIntegrationTokenFrozenError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__TokenFrozen()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationTokenFrozenError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationTokenFrozen, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationTokenFrozen)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationTokenFrozen", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationUnsupportedK represents a EnygmaDvpIntegration__UnsupportedK error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationUnsupportedK struct {
+	K uint8
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__UnsupportedK(uint8 k)
+func EnygmaDvpIntegrationEnygmaDvpIntegrationUnsupportedKErrorID() common.Hash {
+	return common.HexToHash("0x10e70254b7369bff8b35798b630bebae959ad508736ae4ba524339314feed8be")
+}
+
+// UnpackEnygmaDvpIntegrationUnsupportedKError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__UnsupportedK(uint8 k)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationUnsupportedKError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationUnsupportedK, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationUnsupportedK)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationUnsupportedK", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdAlreadySet represents a EnygmaDvpIntegration__VaultIdAlreadySet error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdAlreadySet struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__VaultIdAlreadySet()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdAlreadySetErrorID() common.Hash {
+	return common.HexToHash("0x55edd41d2a5e19bb53cfb3cad4b18cefbf30f8f85675d8ee0db2775d62940804")
+}
+
+// UnpackEnygmaDvpIntegrationVaultIdAlreadySetError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__VaultIdAlreadySet()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationVaultIdAlreadySetError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdAlreadySet, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdAlreadySet)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationVaultIdAlreadySet", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdNotInitialized represents a EnygmaDvpIntegration__VaultIdNotInitialized error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdNotInitialized struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__VaultIdNotInitialized()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdNotInitializedErrorID() common.Hash {
+	return common.HexToHash("0x79139cd80081f33bb5b254ceab71c8d150dbdffb782d96d51260b9d7060ccb5e")
+}
+
+// UnpackEnygmaDvpIntegrationVaultIdNotInitializedError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__VaultIdNotInitialized()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationVaultIdNotInitializedError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdNotInitialized, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationVaultIdNotInitialized)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationVaultIdNotInitialized", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationVerifierNotSet represents a EnygmaDvpIntegration__VerifierNotSet error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationVerifierNotSet struct {
+	K uint8
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__VerifierNotSet(uint8 k)
+func EnygmaDvpIntegrationEnygmaDvpIntegrationVerifierNotSetErrorID() common.Hash {
+	return common.HexToHash("0x9a38e1e7ee8c433ac61df96248cc385ca7a3828edb4df002acb9f330bf08c6a9")
+}
+
+// UnpackEnygmaDvpIntegrationVerifierNotSetError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__VerifierNotSet(uint8 k)
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationVerifierNotSetError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationVerifierNotSet, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationVerifierNotSet)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationVerifierNotSet", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationZeroAddress represents a EnygmaDvpIntegration__ZeroAddress error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationZeroAddress struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroAddress()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationZeroAddressErrorID() common.Hash {
+	return common.HexToHash("0x2f1e9e3fcb3b86daa7ec8c07bfff879d8014de2528386ea4ae65883796b28c4f")
+}
+
+// UnpackEnygmaDvpIntegrationZeroAddressError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroAddress()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationZeroAddressError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationZeroAddress, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationZeroAddress)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationZeroAddress", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationZeroHashCommitment represents a EnygmaDvpIntegration__ZeroHashCommitment error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationZeroHashCommitment struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroHashCommitment()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationZeroHashCommitmentErrorID() common.Hash {
+	return common.HexToHash("0x32a955e60dec20ad4e7f71b6959a31579bf75ceb0b1e3db654fba9ad6f255824")
+}
+
+// UnpackEnygmaDvpIntegrationZeroHashCommitmentError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroHashCommitment()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationZeroHashCommitmentError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationZeroHashCommitment, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationZeroHashCommitment)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationZeroHashCommitment", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationEnygmaDvpIntegrationZeroPaymentCommitment represents a EnygmaDvpIntegration__ZeroPaymentCommitment error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationEnygmaDvpIntegrationZeroPaymentCommitment struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroPaymentCommitment()
+func EnygmaDvpIntegrationEnygmaDvpIntegrationZeroPaymentCommitmentErrorID() common.Hash {
+	return common.HexToHash("0x7f48669a1c90b35dd00fcefae630ffc141c8ce15c8f103b4c5d2cb6706dcd258")
+}
+
+// UnpackEnygmaDvpIntegrationZeroPaymentCommitmentError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error EnygmaDvpIntegration__ZeroPaymentCommitment()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackEnygmaDvpIntegrationZeroPaymentCommitmentError(raw []byte) (*EnygmaDvpIntegrationEnygmaDvpIntegrationZeroPaymentCommitment, error) {
+	out := new(EnygmaDvpIntegrationEnygmaDvpIntegrationZeroPaymentCommitment)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "EnygmaDvpIntegrationZeroPaymentCommitment", raw); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EnygmaDvpIntegrationReentrancyGuardReentrantCall represents a ReentrancyGuardReentrantCall error raised by the EnygmaDvpIntegration contract.
+type EnygmaDvpIntegrationReentrancyGuardReentrantCall struct {
+}
+
+// ErrorID returns the hash of canonical representation of the error's signature.
+//
+// Solidity: error ReentrancyGuardReentrantCall()
+func EnygmaDvpIntegrationReentrancyGuardReentrantCallErrorID() common.Hash {
+	return common.HexToHash("0x3ee5aeb571de7fc460830b4d0017439a1ca56fb0bc39062227ade4fe4a24c1ca")
+}
+
+// UnpackReentrancyGuardReentrantCallError is the Go binding used to decode the provided
+// error data into the corresponding Go error struct.
+//
+// Solidity: error ReentrancyGuardReentrantCall()
+func (enygmaDvpIntegration *EnygmaDvpIntegration) UnpackReentrancyGuardReentrantCallError(raw []byte) (*EnygmaDvpIntegrationReentrancyGuardReentrantCall, error) {
+	out := new(EnygmaDvpIntegrationReentrancyGuardReentrantCall)
+	if err := enygmaDvpIntegration.abi.UnpackIntoInterface(out, "ReentrancyGuardReentrantCall", raw); err != nil {
 		return nil, err
 	}
 	return out, nil
